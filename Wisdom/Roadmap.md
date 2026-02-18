@@ -49,7 +49,7 @@
 - Install dependencies:
     
     ```
-    npm install express sqlite3 ejs body-parser qrcode instascan --save
+    npm install express sqlite3 ejs body-parser --save
     ```
     
 - Create folder structure:
