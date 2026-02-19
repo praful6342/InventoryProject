@@ -33,7 +33,6 @@
 | Backend | Node.js + Express | JavaScript throughout, huge ecosystem, easy to start. |
 | Database | SQLite3 | File‑based, no separate server, perfect for local prototyping. |
 | Frontend | EJS templates + Bootstrap 5 | Server‑rendered pages, minimal JavaScript, responsive out‑of‑the‑box. |
-| QR Scanning | Instascan (or `jsQR` + getUserMedia) | Lightweight library that works in the browser via webcam. |
 | QR Generation | `qrcode` npm package | Generate QR codes as PNG or data URLs. |
 | Charts (optional) | Chart.js | Simple, free, and easy to integrate. |
 | Environment | Laptop (Windows/Mac/Linux) + Android phone (for testing) | All tools are free and run locally. |
