@@ -6,6 +6,55 @@
   <title><%= title %></title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    }
+    .scanner-title {
+      font-weight: 700;
+      color: #2563eb;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .card {
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      transition: box-shadow 0.2s;
+    }
+    .card:hover {
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .btn-primary {
+      background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+      border: none;
+    }
+    .btn-success {
+      background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
+      border: none;
+      color: #065f46;
+    }
+    .btn-danger {
+      background: linear-gradient(90deg, #ef4444 0%, #fca5a5 100%);
+      border: none;
+      color: #991b1b;
+    }
+    .btn-info {
+      background: linear-gradient(90deg, #38bdf8 0%, #bae6fd 100%);
+      border: none;
+      color: #075985;
+    }
+    .product-detail {
+      background-color: #f1f5f9;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .action-buttons .btn {
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+  </style>
   <!-- Html5Qrcode library -->
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
@@ -39,7 +88,7 @@
 </head>
 <body>
   <div class="container mt-5">
-    <h1 class="mb-4">QR Code Scanner</h1>
+    <h1 class="scanner-title mb-4"><i class="fa-solid fa-qrcode me-2"></i>QR Code Scanner</h1>
     <div class="row">
       <div class="col-md-6">
         <!-- Scanner container -->

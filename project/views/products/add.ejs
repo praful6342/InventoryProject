@@ -5,10 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add Product</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    }
+    .add-title {
+      font-weight: 700;
+      color: #2563eb;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .btn-success {
+      background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
+      border: none;
+      color: #065f46;
+    }
+    .btn-secondary {
+      background: linear-gradient(90deg, #64748b 0%, #cbd5e1 100%);
+      border: none;
+      color: #1e293b;
+    }
+    .form-label {
+      font-weight: 600;
+      color: #2563eb;
+    }
+    .form-control {
+      border-radius: 8px;
+    }
+  </style>
 </head>
 <body>
   <div class="container mt-4">
-    <h1>Add New Product</h1>
+    <h1 class="add-title"><i class="fa-solid fa-plus me-2"></i>Add New Product</h1>
     <form action="/products/add" method="POST">
       <div class="mb-3">
         <label for="name" class="form-label">Product Name</label>
