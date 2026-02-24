@@ -1,0 +1,73 @@
+SL NO,Code,CATEGORY,TYPE,Supplier,Color,Size,Qty Sold,Our Price,Total Amount,Margin %,Margin,Total Margin,Actual selling price
+1,HL1,Saree,Al Adhira 252,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+2,HL2,Saree,Al Adhira 214,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+3,HL3,Saree,Al Adhira 220,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+4,HL4,Saree,Al Adhira 116,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+5,HL5,Saree,Al Adhira 230,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+6,HL6,Saree,Al Adhira 226,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+7,HL7,Saree,Al Adhira 216,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+8,HL8,Saree,Al Adhira 216,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+9,HL9,Saree,Al Adhira 216,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+10,HL10,Saree,Al Adhira 254,Ajmera,,,1,1526,1526,60%,915.6,915.6,2441.6
+11,HL11,Saree,All- Riwaayat-107,Ajmera,,,1,2026,2026,60%,1215.6,1215.6,3241.6
+12,HL12,Saree,All-Mohar Vol-1 Ajrak,Ajmera,,,8,826,6608,60%,495.6,3964.8,10572.8
+13,HL13,Saree,Ak MASTANI-201,Ajmera,,,4,631.5,2526,60%,378.9,1515.6,4041.6
+14,HL14,Saree,TEMPLE Kasuti,Narayan Ilakal,,,2,775,1550,60%,465,930,2480
+15,HL15,Saree,Neckless Line,Narayan Ilakal,,,4,1500,6000,60%,900,3600,9600
+16,HL16,Saree,Tan Jery Cheks,Narayan Ilakal,,,1,1500,1500,80%,1200,1200,2700
+17,HL17,Saree,Tana Jerry Boarder,Narayan Ilakal,,,1,1600,1600,60%,960,960,2560
+18,HL18,Saree,Jerry Butta,Narayan Ilakal,,,1,1700,1700,60%,1020,1020,2720
+19,HL19,Saree,Bentex Crape Butta,Narayan Ilakal,,,3,1350,4050,60%,810,2430,6480
+20,HL20,Saree,Bentex Crape,Narayan Ilakal,,,3,1350,4050,60%,810,2430,6480
+21,HL21,Kurti,3PC Sets,Vihar Collections,,,21,750,15750,80%,600,12600,28350
+22,HL22,Kurti,Kurti,Vihar Collections,,,3,450,1350,60%,270,810,2160
+23,HL23,Kurti,Cord Set,Vihar Collections,,,3,450,1350,60%,270,810,2160
+24,HL24,Kurti,Cord Set,Vihar Collections,,,20,650,13000,60%,390,7800,20800
+25,HL25,Kurti,Side Cut 3PC,Vihar Collections,,,5,675,3375,60%,405,2025,5400
+26,HL26,Kurti,Gown With Dupatta,Vihar Collections,,,20,550,11000,60%,330,6600,17600
+27,HL27,Kurti,3 pc set,Vihar Collections,,,5,550,2750,60%,330,1650,4400
+28,HL28,Kurti,3PC Sets,Vihar Collections,,,11,1300,14300,60%,780,8580,22880
+29,HL29,Kurti,Imported turkish fabric,V K export,,,10,649,6490,100%,649,6490,12980
+30,HL30,Kurti,Masalini,V K export,,,9,699,6291,100%,699,6291,12582
+31,HL31,Skirts,Cotton Blue Skirt,V K export,,,5,749,3745,100%,749,3745,7490
+32,HL32,Skirts,Cotton Silk Banaras skirt,V K export,,,4,849,3396,100%,849,3396,6792
+33,HL33,Kurti,Hakoba,V K export,,,5,649,3245,100%,649,3245,6490
+34,HL34,Kurti,Mahendi Green Kurrti,V K export,,,5,749,3745,100%,749,3745,7490
+35,HL35,Kurti,Silk Cotton( 5 colord),V K export,,,25,639,15975,100%,639,15975,31950
+36,HL36,Kurti,Anarakali Pink,V K export,,,5,799,3995,100%,799,3995,7990
+37,HL37,Kurti,Handloom Dress Pink,V K export,,,5,899,4495,100%,899,4495,8990
+38,HL38,Kurti,Green Print,V K export,,,4,699,2796,100%,699,2796,5592
+39,HL39,Skirts,Handloom Skirt Blue,V K export,,,5,899,4495,100%,899,4495,8990
+40,HL40,Kurti,Gearget cotton,V K export,,,4,799,3196,100%,799,3196,6392
+41,HL41,Kurti,Cotton Dress green,V K export,,,5,598,2990,100%,598,2990,5980
+42,HL42,Kurti,A-2452,Fashion Stoty,,,4,1199,4796,60%,719.4,2877.6,7673.6
+43,HL43,Skirts,A-2147,Fashion Stoty,,,4,1199,4796,60%,719.4,2877.6,7673.6
+44,HL44,Skirts,A-2079,Fashion Stoty,,,4,1199,4796,60%,719.4,2877.6,7673.6
+45,HL45,Skirts,A-2416,Fashion Stoty,,,4,1150,4600,60%,690,2760,7360
+46,HL46,Skirts,A-2381,Fashion Stoty,,,4,900,3600,60%,540,2160,5760
+47,HL47,Skirts,Na-6233,Fashion Stoty,,,4,650,2600,60%,390,1560,4160
+48,HL48,Skirts,A-1705,Fashion Stoty,,,5,599,2995,60%,359.4,1797,4792
+49,HL49,Skirts,G41,Fashion Stoty,,,5,1250,6250,60%,750,3750,10000
+50,HL50,Skirts,A-8692,Fashion Stoty,,,4,890,3560,60%,534,2136,5696
+51,HL51,Skirts,A-9530,Fashion Stoty,,,4,999,3996,60%,599.4,2397.6,6393.6
+52,HL52,Skirts,A-2425,Fashion Stoty,,,4,950,3800,60%,570,2280,6080
+53,HL53,Skirts,A-2422,Fashion Stoty,,,4,920,3680,60%,552,2208,5888
+54,HL54,Skirts,Bangalore Silk-1,Laxmi Weaves,,,3,942,2826,80%,753.6,2260.8,5086.8
+55,HL55,Skirts,Soft Silk-2,Laxmi Weaves,,,2,762,1524,100%,762,1524,3048
+56,HL56,Skirts,Kanjivaram Tissue-3,Laxmi Weaves,,,2,1157,2314,80%,925.6,1851.2,4165.2
+57,HL57,Skirts,Soft Tussar-4,Laxmi Weaves,,,4,728,2912,80%,582.4,2329.6,5241.6
+58,HL58,Skirts,Raw Silk-5,Laxmi Weaves,,,2,4020,8040,80%,3216,6432,14472
+59,HL59,Skirts,Viscouse Tissue-6,Laxmi Weaves,,,2,3790,7580,80%,3032,6064,13644
+60,HL60,Skirts,Windy crush-7,Laxmi Weaves,,,2,2295,4590,80%,1836,3672,8262
+61,HL61,Skirts,JD CHECKS-8 Cutwork,Laxmi Weaves,,,2,3330,6660,80%,2664,5328,11988
+62,HL62,Skirts,RAW SILK PAITANI-D44-9,Laxmi Weaves,,,2,3905,7810,80%,3124,6248,14058
+63,HL63,Skirts,JD Checks Viscouse-10,Laxmi Weaves,,,2,2870,5740,80%,2296,4592,10332
+64,HL64,Skirts,RAW SILK CUT WORK-11,Laxmi Weaves,,,2,2985,5970,80%,2388,4776,10746
+65,HL65,Skirts,RAW SILK PAITANI-12,Laxmi Weaves,,,2,3300,6600,80%,2640,5280,11880
+66,HL66,Skirts,CRUSH TUSSAR SHIBORI-13,Laxmi Weaves,,,2,1985,3970,80%,1588,3176,7146
+67,HL67,Skirts,WINDY CRUSH CUT WORK-14,Laxmi Weaves,,,2,1985,3970,80%,1588,3176,7146
+68,HL68,Skirts,RAW SILK-15,Laxmi Weaves,,,3,3790,11370,80%,3032,9096,20466
+69,HL69,Skirts,WINDY CRUSH ALL OVER-16,Laxmi Weaves,,,2,1605,3210,80%,1284,2568,5778
+70,HL70,Skirts,VISCOUSE TUSSAR WITH SATIN BOARDER-17,Laxmi Weaves,,,4,1850,7400,80%,1480,5920,13320
+71,HL71,Skirts,VICHITRA GERA-18,Laxmi Weaves,,,4,1313,5252,80%,1050.4,4201.6,9453.6
+72,HL72,Skirts,VICHITRA STRAIGHT,Laxmi Weaves,,,4,1020,4080,80%,816,3264,7344
