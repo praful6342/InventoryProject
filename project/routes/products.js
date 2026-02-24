@@ -21,9 +21,15 @@ router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
     .on('data', (data) => results.push(data))
     .on('end', () => {
       // Accept columns: name, category, supplier, cost_price, margin_percent, margin_rs, selling_price, size, stock/quantity
+      const seenCodes = new Set();
       const dbOps = results.map(row => {
         return new Promise((resolve, reject) => {
           const code = (row.category + '_' + row.name + '_' + row.supplier).replace(/\s+/g, '').toUpperCase();
+          if (seenCodes.has(code)) {
+            // Already processed in this batch, skip
+            return resolve();
+          }
+          seenCodes.add(code);
           // Parse prices and stock/quantity
           const cost_price = row.cost_price ? parseFloat(row.cost_price) : 0;
           const margin_percent = row.margin_percent ? parseFloat(row.margin_percent) : 0;
@@ -32,34 +38,33 @@ router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
           const stock = row.stock ? parseInt(row.stock) : (row.quantity ? parseInt(row.quantity) : 0);
           db.get('SELECT id FROM products WHERE qr_code = ? OR product_code = ?', [code, code], (err, product) => {
             if (err) return reject(err);
-            const insertOrUpdateVariant = (productId) => {
-              if (row.size) {
-                db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, row.size, stock], err2 => {
-                  if (err2) return reject(err2);
-                  resolve();
-                });
-              } else {
-                // No size, store stock in a pseudo-variant with size 'NOSIZE' or skip variant table
-                db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, 'NOSIZE', stock], err2 => {
-                  if (err2) return reject(err2);
-                  resolve();
-                });
-              }
-            };
             if (product) {
-              // Product exists, update prices if provided
-              db.run('UPDATE products SET cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ? WHERE id = ?', [cost_price, margin_percent, margin_rs, selling_price, product.id], err4 => {
-                if (err4) return reject(err4);
-                insertOrUpdateVariant(product.id);
-              });
-            } else {
-              // Insert product, then variant
-              db.run('INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [code, row.category, row.name, row.supplier, cost_price, margin_percent, margin_rs, selling_price, code], function(err3) {
-                if (err3) return reject(err3);
-                const newId = this.lastID;
-                insertOrUpdateVariant(newId);
-              });
+              // Product exists, skip
+              return resolve();
             }
+            // Insert product, then variant
+            db.run('INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [code, row.category, row.name, row.supplier, cost_price, margin_percent, margin_rs, selling_price, code], function(err3) {
+              if (err3) {
+                // If UNIQUE constraint error, skip
+                if (err3.code === 'SQLITE_CONSTRAINT') return resolve();
+                return reject(err3);
+              }
+              const newId = this.lastID;
+              const insertOrUpdateVariant = (productId) => {
+                if (row.size) {
+                  db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, row.size, stock], err2 => {
+                    if (err2) return reject(err2);
+                    resolve();
+                  });
+                } else {
+                  db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, 'NOSIZE', stock], err2 => {
+                    if (err2) return reject(err2);
+                    resolve();
+                  });
+                }
+              };
+              insertOrUpdateVariant(newId);
+            });
           });
         });
       });
