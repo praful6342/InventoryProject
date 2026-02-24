@@ -21,14 +21,14 @@ router.get('/add', (req, res) => {
 
 // Add product
 router.post('/add', (req, res) => {
-  const { name, description, cost_price, selling_price, stock } = req.body;
+  const { name, cost_price, selling_price, stock } = req.body;
   if (!name || !cost_price || !selling_price || stock === undefined) {
     return res.status(400).send('Missing required fields');
   }
 
   db.run(
-    `INSERT INTO products (name, description, cost_price, selling_price, stock) VALUES (?, ?, ?, ?, ?)`,
-    [name, description, cost_price, selling_price, stock],
+    `INSERT INTO products (name, cost_price, selling_price, stock) VALUES (?, ?, ?, ?)`,
+    [name, cost_price, selling_price, stock],
     function(err) {
       if (err) {
         console.error(err);
@@ -100,15 +100,15 @@ router.get('/edit/:id', (req, res) => {
 // Update product (NEW)
 router.post('/update/:id', (req, res) => {
   const id = req.params.id;
-  const { name, description, cost_price, selling_price, stock } = req.body;
+  const { name, cost_price, selling_price, stock } = req.body;
 
   if (!name || !cost_price || !selling_price || stock === undefined) {
     return res.status(400).send('Missing required fields');
   }
 
   db.run(
-    `UPDATE products SET name = ?, description = ?, cost_price = ?, selling_price = ?, stock = ? WHERE id = ?`,
-    [name, description, cost_price, selling_price, stock, id],
+    `UPDATE products SET name = ?, cost_price = ?, selling_price = ?, stock = ? WHERE id = ?`,
+    [name, cost_price, selling_price, stock, id],
     function(err) {
       if (err) {
         console.error(err);

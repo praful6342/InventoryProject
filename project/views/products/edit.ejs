@@ -43,10 +43,7 @@
         <label for="name" class="form-label">Product Name</label>
         <input type="text" class="form-control" id="name" name="name" value="<%= product.name %>" required>
       </div>
-      <div class="mb-3">
-        <label for="description" class="form-label">Description</label>
-        <textarea class="form-control" id="description" name="description" rows="2"><%= product.description || '' %></textarea>
-      </div>
+      
       <div class="mb-3">
         <label for="cost_price" class="form-label">Cost Price (₹)</label>
         <input type="number" step="0.01" class="form-control" id="cost_price" name="cost_price" value="<%= product.cost_price %>" required>
