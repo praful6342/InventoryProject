@@ -125,15 +125,23 @@ router.get('/:id', (req, res) => {
 // Show edit product form (NEW)
 router.get('/edit/:id', (req, res) => {
   const id = req.params.id;
-  db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
+  db.get('SELECT * FROM products WHERE id = ?', [id], (err, productRow) => {
     if (err) {
       console.error(err);
       return res.status(500).send('Database error');
     }
-    if (!product) {
+    if (!productRow) {
       return res.status(404).send('Product not found');
     }
-    res.render('products/edit', { product });
+    db.all('SELECT size, stock FROM product_variants WHERE product_id = ?', [id], (err2, variants) => {
+      if (err2) {
+        console.error(err2);
+        return res.status(500).send('Database error');
+      }
+      // Create a plain object with all product fields and variants
+      const product = { ...productRow, variants: variants || [] };
+      res.render('products/edit', { product });
+    });
   });
 });
 
