@@ -30,11 +30,11 @@ router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
             return resolve();
           }
           seenCodes.add(code);
-          // Parse prices and stock/quantity
-          const cost_price = row.cost_price ? parseFloat(row.cost_price) : 0;
-          const margin_percent = row.margin_percent ? parseFloat(row.margin_percent) : 0;
-          const margin_rs = row.margin_rs ? parseFloat(row.margin_rs) : 0;
-          const selling_price = row.selling_price ? parseFloat(row.selling_price) : 0;
+          // Parse prices and stock/quantity, handle missing columns
+          const cost_price = row.cost_price ? parseFloat(row.cost_price) : (row['Cost price'] ? parseFloat(row['Cost price']) : 0);
+          const margin_percent = row.margin_percent ? parseFloat(row.margin_percent) : (row['Margin (%)'] ? parseFloat(row['Margin (%)']) : 0);
+          const margin_rs = row.margin_rs ? parseFloat(row.margin_rs) : (row['Margin (Amount)'] ? parseFloat(row['Margin (Amount)']) : 0);
+          const selling_price = row.selling_price ? parseFloat(row.selling_price) : (row['Selling price'] ? parseFloat(row['Selling price']) : 0);
           const stock = row.stock ? parseInt(row.stock) : (row.quantity ? parseInt(row.quantity) : 0);
           db.get('SELECT id FROM products WHERE qr_code = ? OR product_code = ?', [code, code], (err, product) => {
             if (err) return reject(err);
@@ -50,20 +50,8 @@ router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
                 return reject(err3);
               }
               const newId = this.lastID;
-              const insertOrUpdateVariant = (productId) => {
-                if (row.size) {
-                  db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, row.size, stock], err2 => {
-                    if (err2) return reject(err2);
-                    resolve();
-                  });
-                } else {
-                  db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, 'NOSIZE', stock], err2 => {
-                    if (err2) return reject(err2);
-                    resolve();
-                  });
-                }
-              };
-              insertOrUpdateVariant(newId);
+              // Do not add variant; resolve immediately
+              resolve();
             });
           });
         });

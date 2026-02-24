@@ -57,8 +57,38 @@
   </nav>
   <div class="container mt-4">
     <h1 class="sale-title"><i class="fa-solid fa-cart-plus me-2"></i>New Sale</h1>
-    <div class="alert alert-info">Sales can only be completed by scanning the product QR code. Manual selection is disabled.</div>
-    <a href="/scan" class="btn btn-primary mt-3">Go to QR Scan</a>
+    <% if (product) { %>
+      <div class="alert alert-success">Selling: <strong><%= product.name %></strong> (<%= product.category %>) - ₹<%= product.selling_price %></div>
+      <form action="/sell" method="POST" class="mb-4 mt-3">
+        <input type="hidden" name="product_id" value="<%= product.id %>">
+        <div class="mb-3">
+          <label for="size" class="form-label">Select Size</label>
+          <select class="form-control" id="size" name="size" required>
+            <option value="">Select Size</option>
+            <% variants.forEach(function(v) { %>
+              <option value="<%= v.size %>"><%= v.size %> (Stock: <%= v.stock %>)</option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="quantity" class="form-label">Quantity</label>
+          <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+        </div>
+        <div class="mb-3">
+          <label for="customer_name" class="form-label">Customer Name (optional)</label>
+          <input type="text" class="form-control" id="customer_name" name="customer_name">
+        </div>
+        <div class="mb-3">
+          <label for="customer_phone" class="form-label">Customer Phone (optional)</label>
+          <input type="text" class="form-control" id="customer_phone" name="customer_phone">
+        </div>
+        <button type="submit" class="btn btn-success">Complete Sale</button>
+        <a href="/scan" class="btn btn-secondary ms-2">Scan Another</a>
+      </form>
+    <% } else { %>
+      <div class="alert alert-info">Sales can only be completed by scanning the product QR code. Manual selection is disabled.</div>
+      <a href="/scan" class="btn btn-primary mt-3">Go to QR Scan</a>
+    <% } %>
   </div>
 
   <script>
