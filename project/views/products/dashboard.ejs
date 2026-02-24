@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory Dashboard</title>
+    <link rel="stylesheet" href="/public/styles.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .dashboard-container { max-width: 1000px; margin: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background: #f4f4f4; }
+        .actions button { margin-right: 5px; }
+        .search-bar { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <h1>Inventory Dashboard</h1>
+    <div class="search-bar">
+        <form method="GET" action="/products/dashboard">
+            <input type="text" name="search" placeholder="Search products...">
+            <button type="submit">Search</button>
+            <a href="/products/add"><button type="button">Add Product</button></a>
+        </form>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% products.forEach(function(product) { %>
+            <tr>
+                <td><%= product.name %></td>
+                <td><%= product.category %></td>
+                <td><%= product.quantity %></td>
+                <td><%= product.price %></td>
+                <td class="actions">
+                    <a href="/products/edit/<%= product._id %>"><button>Edit</button></a>
+                    <form method="POST" action="/products/delete/<%= product._id %>" style="display:inline;">
+                        <button type="submit" onclick="return confirm('Delete this product?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        <% }); %>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

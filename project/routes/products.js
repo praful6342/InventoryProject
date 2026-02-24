@@ -59,6 +59,22 @@ router.get('/:id', (req, res) => {
     QRCode.toDataURL(product.id.toString(), (err, url) => {
       if (err) {
         console.error(err);
+    router.get('/dashboard', (req, res) => {
+      const search = req.query.search || '';
+      let sql = 'SELECT * FROM products';
+      let params = [];
+      if (search) {
+        sql += ' WHERE name LIKE ? OR category LIKE ?';
+        params = [`%${search}%`, `%${search}%`];
+      }
+      db.all(sql, params, (err, rows) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).send('Database error');
+        }
+        res.render('products/dashboard', { products: rows });
+      });
+    });
         return res.status(500).send('QR generation error');
       }
       res.render('products/show', { product, qrCodeUrl: url });
