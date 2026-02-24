@@ -57,45 +57,8 @@
   </nav>
   <div class="container mt-4">
     <h1 class="sale-title"><i class="fa-solid fa-cart-plus me-2"></i>New Sale</h1>
-    <% if (error) { %>
-      <div class="alert alert-danger"><%= error %></div>
-    <% } %>
-
-    <form action="/sell" method="POST">
-      <div class="mb-3">
-        <label for="product_id" class="form-label">Select Product</label>
-        <select class="form-select" id="product_id" name="product_id">
-          <option value="">-- Choose product --</option>
-          <% products.forEach(p => { %>
-            <option value="<%= p.id %>" <%= product && product.id == p.id ? 'selected' : '' %>>
-              <%= p.name %> - ₹<%= p.selling_price %> (Stock: <%= p.stock %>)
-            </option>
-          <% }) %>
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label for="quantity" class="form-label">Quantity</label>
-        <input type="number" class="form-control" id="quantity" name="quantity" min="1">
-      </div>
-
-      <h4 class="mt-4">Customer Details (optional)</h4>
-      <div class="mb-3">
-        <label for="customer_name" class="form-label">Name</label>
-        <input type="text" class="form-control" id="customer_name" name="customer_name">
-      </div>
-      <div class="mb-3">
-        <label for="customer_phone" class="form-label">Phone</label>
-        <input type="tel" class="form-control" id="customer_phone" name="customer_phone">
-      </div>
-      <div class="mb-3">
-        <label for="customer_email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="customer_email" name="customer_email">
-      </div>
-
-      <button type="submit" class="btn btn-success">Complete Sale</button>
-      <a href="/" class="btn btn-secondary">Cancel</a>
-    </form>
+    <div class="alert alert-info">Sales can only be completed by scanning the product QR code. Manual selection is disabled.</div>
+    <a href="/scan" class="btn btn-primary mt-3">Go to QR Scan</a>
   </div>
 
   <script>

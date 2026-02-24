@@ -137,7 +137,7 @@
     </form>
   </div>
   <script>
-    let sizeIndex = <%= product.variants && product.variants.length ? product.variants.length : 1 %>;
+    let sizeIndex = parseInt('<%= product.variants && product.variants.length ? product.variants.length : 1 %>', 10);
     document.getElementById('add-size-row').addEventListener('click', function() {
       const container = document.getElementById('sizes-container');
       const newRow = document.createElement('div');

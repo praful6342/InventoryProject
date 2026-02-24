@@ -1,8 +1,12 @@
-// CSV upload dependencies
+const express = require('express');
+const router = express.Router();
+const db = require('../database');
+const QRCode = require('qrcode');
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
 const upload = multer({ dest: 'uploads/' });
+
 // Show CSV upload form
 router.get('/upload-csv', (req, res) => {
   res.render('products/upload_csv');
@@ -19,24 +23,30 @@ router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
       // Example: CSV columns should match your DB fields, e.g. name, category, supplier, size, stock
       const dbOps = results.map(row => {
         return new Promise((resolve, reject) => {
-          // Insert or update product
-          db.get('SELECT id FROM products WHERE name = ? AND supplier = ?', [row.name, row.supplier], (err, product) => {
+          const code = (row.category + '_' + row.name + '_' + row.supplier).replace(/\s+/g, '').toUpperCase();
+          // Always try to find product by qr_code or product_code
+          db.get('SELECT id FROM products WHERE qr_code = ? OR product_code = ?', [code, code], (err, product) => {
             if (err) return reject(err);
-            if (product) {
-              // Insert or update variant
-              db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [product.id, row.size, row.stock], err2 => {
-                if (err2) return reject(err2);
-                resolve();
-              });
-            } else {
-              // Insert product, then variant
-              db.run('INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?)', [row.category + '_' + row.name + '_' + row.supplier, row.category, row.name, row.supplier, row.category + '_' + row.name + '_' + row.supplier], function(err3) {
-                if (err3) return reject(err3);
-                const newId = this.lastID;
-                db.run('INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [newId, row.size, row.stock], err4 => {
-                  if (err4) return reject(err4);
+            const insertOrUpdateVariant = (productId) => {
+              if (row.size) {
+                db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, row.size, row.stock], err2 => {
+                  if (err2) return reject(err2);
                   resolve();
                 });
+              } else {
+                // No size, do not insert/update variant
+                resolve();
+              }
+            };
+            if (product) {
+              // Product exists, just insert/update variant if needed
+              insertOrUpdateVariant(product.id);
+            } else {
+              // Insert product, then variant if size is present
+              db.run('INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?)', [code, row.category, row.name, row.supplier, code], function(err3) {
+                if (err3) return reject(err3);
+                const newId = this.lastID;
+                insertOrUpdateVariant(newId);
               });
             }
           });
@@ -53,11 +63,6 @@ router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
         });
     });
 });
-// Delete product (and related sale_items, sales if needed)
-const db = require('../database');
-const QRCode = require('qrcode');
-const express = require('express');
-const router = express.Router();
 router.post('/delete/:id', (req, res) => {
   const id = req.params.id;
   // First, delete sale_items referencing this product
@@ -113,9 +118,7 @@ router.post('/add', (req, res) => {
     selling_price,
     sizes
   } = req.body;
-  if (!category || !name || !supplier || !cost_price || !margin_percent || !margin_rs || !selling_price || !sizes) {
-    return res.status(400).send('Missing required fields');
-  }
+  // No required field checks; allow null/empty values
 
   // Generate product_code and qr_code: category + name + supplier (all uppercase, no spaces)
   const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
@@ -129,28 +132,36 @@ router.post('/add', (req, res) => {
         return res.status(500).send('Error saving product');
       }
       const productId = this.lastID;
-      // sizes is an object: { 0: {size: 'S', stock: 10}, 1: {size: 'M', stock: 5}, ... }
-      const sizeEntries = Array.isArray(sizes) ? sizes : Object.values(sizes);
-      const insertVariant = (variant, cb) => {
+      // Ensure sizes is always an array
+      let sizeEntries = [];
+      if (Array.isArray(sizes)) {
+        sizeEntries = sizes;
+      } else if (sizes && typeof sizes === 'object') {
+        sizeEntries = Object.values(sizes);
+      }
+      if (!sizeEntries || sizeEntries.length === 0) {
+        return res.redirect('/products');
+      }
+      let completed = 0;
+      let started = 0;
+      for (let i = 0; i < sizeEntries.length; i++) {
+        const variant = sizeEntries[i];
+        if (!variant || !variant.size || variant.stock === undefined) continue;
+        started++;
         db.run(
           `INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)`,
           [productId, variant.size, variant.stock],
-          cb
-        );
-      };
-      let completed = 0;
-      for (let i = 0; i < sizeEntries.length; i++) {
-        const variant = sizeEntries[i];
-        if (!variant.size || variant.stock === undefined) continue;
-        insertVariant(variant, (err) => {
-          if (err) console.error('Error saving variant:', err);
-          completed++;
-          if (completed === sizeEntries.length) {
-            res.redirect('/products');
+          (err) => {
+            if (err) console.error('Error saving variant:', err);
+            completed++;
+            if (completed === started) {
+              res.redirect('/products');
+            }
           }
-        });
+        );
       }
-      if (sizeEntries.length === 0) res.redirect('/products');
+      // If no valid variants were started, redirect immediately
+      if (started === 0) res.redirect('/products');
     }
   );
 });
@@ -214,9 +225,7 @@ router.post('/update/:id', (req, res) => {
     sizes
   } = req.body;
 
-  if (!category || !name || !supplier || !cost_price || !margin_percent || !margin_rs || !selling_price || !sizes) {
-    return res.status(400).send('Missing required fields');
-  }
+  // No required field checks; allow null/empty values
 
   // Regenerate product_code and qr_code
   const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
