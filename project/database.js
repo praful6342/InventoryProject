@@ -13,7 +13,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // Initialize tables
 db.serialize(() => {
-  // Products table (if not exists)
+  // Products table (no size/stock columns)
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,8 +21,6 @@ db.serialize(() => {
       category TEXT NOT NULL,
       name TEXT NOT NULL,
       supplier TEXT NOT NULL,
-      size TEXT NOT NULL,
-      stock INTEGER NOT NULL DEFAULT 0,
       cost_price REAL NOT NULL,
       margin_percent REAL NOT NULL,
       margin_rs REAL NOT NULL,
@@ -31,6 +29,19 @@ db.serialize(() => {
     )
   `, (err) => {
     if (err) console.error('Error creating products table:', err);
+  });
+
+  // Product variants table (size-wise stock)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS product_variants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      size TEXT NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    )
+  `, (err) => {
+    if (err) console.error('Error creating product_variants table:', err);
   });
 
   // Customers table

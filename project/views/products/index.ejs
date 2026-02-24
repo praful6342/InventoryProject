@@ -77,8 +77,7 @@
           <th>Category</th>
           <th>Name</th>
           <th>Supplier</th>
-          <th>Size</th>
-          <th>Quantity</th>
+          <th>Sizes & Stock</th>
           <th>Cost Price (₹)</th>
           <th>Margin (%)</th>
           <th>Margin (₹)</th>
@@ -111,8 +110,11 @@
               <td>${product.category}</td>
               <td>${product.name}</td>
               <td>${product.supplier}</td>
-              <td>${product.size}</td>
-              <td>${product.stock}</td>
+              <td>
+                ${product.variants && product.variants.length > 0
+                  ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
+                  : '<span class="text-muted">—</span>'}
+              </td>
               <td>₹${product.cost_price}</td>
               <td>${product.margin_percent}</td>
               <td>${product.margin_rs}</td>

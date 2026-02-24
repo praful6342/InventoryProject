@@ -52,14 +52,13 @@ router.post('/add', (req, res) => {
     category,
     name,
     supplier,
-    size,
-    stock,
     cost_price,
     margin_percent,
     margin_rs,
-    selling_price
+    selling_price,
+    sizes
   } = req.body;
-  if (!category || !name || !supplier || !size || stock === undefined || !cost_price || !margin_percent || !margin_rs || !selling_price) {
+  if (!category || !name || !supplier || !cost_price || !margin_percent || !margin_rs || !selling_price || !sizes) {
     return res.status(400).send('Missing required fields');
   }
 
@@ -67,14 +66,36 @@ router.post('/add', (req, res) => {
   const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
 
   db.run(
-    `INSERT INTO products (product_code, category, name, supplier, size, stock, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [productCode, category, name, supplier, size, stock, cost_price, margin_percent, margin_rs, selling_price, productCode],
+    `INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, productCode],
     function(err) {
       if (err) {
         console.error(err);
         return res.status(500).send('Error saving product');
       }
-      res.redirect('/products');
+      const productId = this.lastID;
+      // sizes is an object: { 0: {size: 'S', stock: 10}, 1: {size: 'M', stock: 5}, ... }
+      const sizeEntries = Array.isArray(sizes) ? sizes : Object.values(sizes);
+      const insertVariant = (variant, cb) => {
+        db.run(
+          `INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)`,
+          [productId, variant.size, variant.stock],
+          cb
+        );
+      };
+      let completed = 0;
+      for (let i = 0; i < sizeEntries.length; i++) {
+        const variant = sizeEntries[i];
+        if (!variant.size || variant.stock === undefined) continue;
+        insertVariant(variant, (err) => {
+          if (err) console.error('Error saving variant:', err);
+          completed++;
+          if (completed === sizeEntries.length) {
+            res.redirect('/products');
+          }
+        });
+      }
+      if (sizeEntries.length === 0) res.redirect('/products');
     }
   );
 });
@@ -123,15 +144,14 @@ router.post('/update/:id', (req, res) => {
     category,
     name,
     supplier,
-    size,
-    stock,
     cost_price,
     margin_percent,
     margin_rs,
-    selling_price
+    selling_price,
+    sizes
   } = req.body;
 
-  if (!category || !name || !supplier || !size || stock === undefined || !cost_price || !margin_percent || !margin_rs || !selling_price) {
+  if (!category || !name || !supplier || !cost_price || !margin_percent || !margin_rs || !selling_price || !sizes) {
     return res.status(400).send('Missing required fields');
   }
 
@@ -139,14 +159,39 @@ router.post('/update/:id', (req, res) => {
   const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
 
   db.run(
-    `UPDATE products SET product_code = ?, category = ?, name = ?, supplier = ?, size = ?, stock = ?, cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ?, qr_code = ? WHERE id = ?`,
-    [productCode, category, name, supplier, size, stock, cost_price, margin_percent, margin_rs, selling_price, productCode, id],
+    `UPDATE products SET product_code = ?, category = ?, name = ?, supplier = ?, cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ?, qr_code = ? WHERE id = ?`,
+    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, productCode, id],
     function(err) {
       if (err) {
         console.error(err);
         return res.status(500).send('Error updating product');
       }
-      res.redirect('/products/' + id); // redirect to product detail page
+      // Remove old variants and insert new ones
+      db.run('DELETE FROM product_variants WHERE product_id = ?', [id], function(err2) {
+        if (err2) {
+          console.error('Error deleting old variants:', err2);
+          return res.status(500).send('Error updating variants');
+        }
+        const sizeEntries = Array.isArray(sizes) ? sizes : Object.values(sizes);
+        let completed = 0;
+        if (sizeEntries.length === 0) return res.redirect('/products/' + id);
+        sizeEntries.forEach(variant => {
+          if (!variant.size || variant.stock === undefined) {
+            completed++;
+            if (completed === sizeEntries.length) res.redirect('/products/' + id);
+            return;
+          }
+          db.run(
+            `INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)`,
+            [id, variant.size, variant.stock],
+            function(err3) {
+              if (err3) console.error('Error saving variant:', err3);
+              completed++;
+              if (completed === sizeEntries.length) res.redirect('/products/' + id);
+            }
+          );
+        });
+      });
     }
   );
 });

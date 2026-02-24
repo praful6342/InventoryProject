@@ -80,8 +80,17 @@
           <tr><th>Category</th><td><%= product.category %></td></tr>
           <tr><th>Name</th><td><%= product.name %></td></tr>
           <tr><th>Supplier</th><td><%= product.supplier %></td></tr>
-          <tr><th>Size</th><td><%= product.size %></td></tr>
-          <tr><th>Quantity</th><td id="product-stock"><%= product.stock %></td></tr>
+          <tr><th>Sizes & Stock</th>
+            <td id="product-stock">
+              <% if (product.variants && product.variants.length > 0) { %>
+                <% product.variants.forEach(function(v) { %>
+                  <span><%= v.size %>: <%= v.stock %></span><br>
+                <% }); %>
+              <% } else { %>
+                <span class="text-muted">—</span>
+              <% } %>
+            </td>
+          </tr>
           <tr><th>Cost Price</th><td id="product-cost">₹<%= product.cost_price %></td></tr>
           <tr><th>Margin (%)</th><td><%= product.margin_percent %></td></tr>
           <tr><th>Margin (₹)</th><td><%= product.margin_rs %></td></tr>
@@ -117,10 +126,15 @@
 
         // Update all fields, including description
         document.getElementById('product-name').innerText = product.name;
-        document.getElementById('product-description').innerText = product.description || '—';
         document.getElementById('product-cost').innerHTML = `₹${product.cost_price}`;
         document.getElementById('product-selling').innerHTML = `₹${product.selling_price}`;
-        document.getElementById('product-stock').innerText = product.stock;
+        // Show all size-wise stock
+        const stockTd = document.getElementById('product-stock');
+        if (product.variants && product.variants.length > 0) {
+          stockTd.innerHTML = product.variants.map(v => `<span>${v.size}: ${v.stock}</span>`).join('<br>');
+        } else {
+          stockTd.innerHTML = '<span class="text-muted">—</span>';
+        }
 
         document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
       } catch (error) {

@@ -71,19 +71,28 @@
         <input type="text" class="form-control" id="supplier" name="supplier" required>
       </div>
       <div class="mb-3">
-        <label for="size" class="form-label">Size</label>
-        <select class="form-control" id="size" name="size" required>
-          <option value="">Select Size</option>
-          <option value="S">S</option>
-          <option value="M">M</option>
-          <option value="L">L</option>
-          <option value="XL">XL</option>
-          <option value="XXL">XXL</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label for="stock" class="form-label">Quantity</label>
-        <input type="number" class="form-control" id="stock" name="stock" required>
+        <label class="form-label">Sizes & Stock</label>
+        <div id="sizes-container">
+          <div class="row mb-2 size-row">
+            <div class="col-md-5">
+              <select class="form-control" name="sizes[0][size]" required>
+                <option value="">Select Size</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+              </select>
+            </div>
+            <div class="col-md-5">
+              <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity" required>
+            </div>
+            <div class="col-md-2">
+              <button type="button" class="btn btn-danger remove-size-row" style="display:none;">Remove</button>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" id="add-size-row">Add Size</button>
       </div>
       <div class="mb-3">
         <label for="cost_price" class="form-label">Cost Price (₹)</label>
@@ -104,6 +113,48 @@
       <button type="submit" class="btn btn-success">Save Product</button>
       <a href="/products" class="btn btn-secondary">Cancel</a>
     </form>
+  </div>
+  <script>
+    let sizeIndex = 1;
+    document.getElementById('add-size-row').addEventListener('click', function() {
+      const container = document.getElementById('sizes-container');
+      const newRow = document.createElement('div');
+      newRow.className = 'row mb-2 size-row';
+      newRow.innerHTML = `
+        <div class="col-md-5">
+          <select class="form-control" name="sizes[${sizeIndex}][size]" required>
+            <option value="">Select Size</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+          </select>
+        </div>
+        <div class="col-md-5">
+          <input type="number" class="form-control" name="sizes[${sizeIndex}][stock]" placeholder="Quantity" required>
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-danger remove-size-row">Remove</button>
+        </div>
+      `;
+      container.appendChild(newRow);
+      updateRemoveButtons();
+      sizeIndex++;
+    });
+    function updateRemoveButtons() {
+      const rows = document.querySelectorAll('.size-row');
+      rows.forEach((row, idx) => {
+        const btn = row.querySelector('.remove-size-row');
+        if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
+        btn && btn.addEventListener('click', function() {
+          row.remove();
+          updateRemoveButtons();
+        });
+      });
+    }
+    updateRemoveButtons();
+  </script>
   </div>
 </body>
 </html>
