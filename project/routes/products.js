@@ -1,3 +1,58 @@
+// CSV upload dependencies
+const multer = require('multer');
+const csv = require('csv-parser');
+const fs = require('fs');
+const upload = multer({ dest: 'uploads/' });
+// Show CSV upload form
+router.get('/upload-csv', (req, res) => {
+  res.render('products/upload_csv');
+});
+
+// Handle CSV upload and import
+router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
+  if (!req.file) return res.status(400).send('No file uploaded');
+  const results = [];
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', () => {
+      // Example: CSV columns should match your DB fields, e.g. name, category, supplier, size, stock
+      const dbOps = results.map(row => {
+        return new Promise((resolve, reject) => {
+          // Insert or update product
+          db.get('SELECT id FROM products WHERE name = ? AND supplier = ?', [row.name, row.supplier], (err, product) => {
+            if (err) return reject(err);
+            if (product) {
+              // Insert or update variant
+              db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [product.id, row.size, row.stock], err2 => {
+                if (err2) return reject(err2);
+                resolve();
+              });
+            } else {
+              // Insert product, then variant
+              db.run('INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?)', [row.category + '_' + row.name + '_' + row.supplier, row.category, row.name, row.supplier, row.category + '_' + row.name + '_' + row.supplier], function(err3) {
+                if (err3) return reject(err3);
+                const newId = this.lastID;
+                db.run('INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [newId, row.size, row.stock], err4 => {
+                  if (err4) return reject(err4);
+                  resolve();
+                });
+              });
+            }
+          });
+        });
+      });
+      Promise.all(dbOps)
+        .then(() => {
+          fs.unlinkSync(req.file.path);
+          res.redirect('/products');
+        })
+        .catch(e => {
+          fs.unlinkSync(req.file.path);
+          res.status(500).send('Error importing CSV: ' + e.message);
+        });
+    });
+});
 // Delete product (and related sale_items, sales if needed)
 const db = require('../database');
 const QRCode = require('qrcode');
