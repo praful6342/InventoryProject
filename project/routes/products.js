@@ -20,30 +20,41 @@ router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
     .pipe(csv())
     .on('data', (data) => results.push(data))
     .on('end', () => {
-      // Example: CSV columns should match your DB fields, e.g. name, category, supplier, size, stock
+      // Accept columns: name, category, supplier, cost_price, margin_percent, margin_rs, selling_price, size, stock/quantity
       const dbOps = results.map(row => {
         return new Promise((resolve, reject) => {
           const code = (row.category + '_' + row.name + '_' + row.supplier).replace(/\s+/g, '').toUpperCase();
-          // Always try to find product by qr_code or product_code
+          // Parse prices and stock/quantity
+          const cost_price = row.cost_price ? parseFloat(row.cost_price) : 0;
+          const margin_percent = row.margin_percent ? parseFloat(row.margin_percent) : 0;
+          const margin_rs = row.margin_rs ? parseFloat(row.margin_rs) : 0;
+          const selling_price = row.selling_price ? parseFloat(row.selling_price) : 0;
+          const stock = row.stock ? parseInt(row.stock) : (row.quantity ? parseInt(row.quantity) : 0);
           db.get('SELECT id FROM products WHERE qr_code = ? OR product_code = ?', [code, code], (err, product) => {
             if (err) return reject(err);
             const insertOrUpdateVariant = (productId) => {
               if (row.size) {
-                db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, row.size, row.stock], err2 => {
+                db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, row.size, stock], err2 => {
                   if (err2) return reject(err2);
                   resolve();
                 });
               } else {
-                // No size, do not insert/update variant
-                resolve();
+                // No size, store stock in a pseudo-variant with size 'NOSIZE' or skip variant table
+                db.run('INSERT OR REPLACE INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)', [productId, 'NOSIZE', stock], err2 => {
+                  if (err2) return reject(err2);
+                  resolve();
+                });
               }
             };
             if (product) {
-              // Product exists, just insert/update variant if needed
-              insertOrUpdateVariant(product.id);
+              // Product exists, update prices if provided
+              db.run('UPDATE products SET cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ? WHERE id = ?', [cost_price, margin_percent, margin_rs, selling_price, product.id], err4 => {
+                if (err4) return reject(err4);
+                insertOrUpdateVariant(product.id);
+              });
             } else {
-              // Insert product, then variant if size is present
-              db.run('INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?)', [code, row.category, row.name, row.supplier, code], function(err3) {
+              // Insert product, then variant
+              db.run('INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [code, row.category, row.name, row.supplier, cost_price, margin_percent, margin_rs, selling_price, code], function(err3) {
                 if (err3) return reject(err3);
                 const newId = this.lastID;
                 insertOrUpdateVariant(newId);
@@ -266,6 +277,39 @@ router.post('/update/:id', (req, res) => {
       });
     }
   );
+});
+
+// Bulk delete products (real-time update)
+router.post('/bulk-delete', (req, res) => {
+  let ids = req.body.productIds;
+  if (!ids) return res.redirect('/products');
+  if (!Array.isArray(ids)) ids = [ids];
+  // Remove from sale_items, product_variants, then products
+  const placeholders = ids.map(() => '?').join(',');
+  db.serialize(() => {
+    db.run(`DELETE FROM sale_items WHERE product_id IN (${placeholders})`, ids, function(err) {
+      if (err) {
+        console.error('Error deleting sale_items:', err);
+        return res.status(500).send('Error deleting sale items');
+      }
+      db.run(`DELETE FROM product_variants WHERE product_id IN (${placeholders})`, ids, function(err2) {
+        if (err2) {
+          console.error('Error deleting variants:', err2);
+          return res.status(500).send('Error deleting variants');
+        }
+        db.run(`DELETE FROM products WHERE id IN (${placeholders})`, ids, function(err3) {
+          if (err3) {
+            console.error('Error deleting products:', err3);
+            return res.status(500).send('Error deleting products');
+          }
+          if (req.app && req.app.locals && req.app.locals.socketApi) {
+            req.app.locals.socketApi.emitProductUpdate();
+          }
+          res.redirect('/products');
+        });
+      });
+    });
+  });
 });
 
 module.exports = router;

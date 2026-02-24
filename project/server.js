@@ -40,8 +40,12 @@ const options = {
   cert: fs.readFileSync('server.crt')
 };
 
-// Create HTTPS server
-https.createServer(options, app).listen(PORT, () => {
+// Create HTTPS server and integrate Socket.IO
+const server = https.createServer(options, app);
+const setupSocket = require('./socket');
+const socketApi = setupSocket(server);
+app.locals.socketApi = socketApi;
+server.listen(PORT, () => {
   console.log(`HTTPS Server running at https://localhost:${PORT}`);
   console.log(`On your phone, use https://<your-laptop-ip>:${PORT}`);
 });
