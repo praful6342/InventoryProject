@@ -41,21 +41,47 @@
     <h1 class="add-title"><i class="fa-solid fa-plus me-2"></i>Add New Product</h1>
     <form action="/products/add" method="POST">
       <div class="mb-3">
+        <label for="category" class="form-label">Category</label>
+        <input type="text" class="form-control" id="category" name="category" required>
+      </div>
+      <div class="mb-3">
         <label for="name" class="form-label">Product Name</label>
         <input type="text" class="form-control" id="name" name="name" required>
       </div>
-      
+      <div class="mb-3">
+        <label for="supplier" class="form-label">Supplier</label>
+        <input type="text" class="form-control" id="supplier" name="supplier" required>
+      </div>
+      <div class="mb-3">
+        <label for="size" class="form-label">Size</label>
+        <select class="form-control" id="size" name="size" required>
+          <option value="">Select Size</option>
+          <option value="S">S</option>
+          <option value="M">M</option>
+          <option value="L">L</option>
+          <option value="XL">XL</option>
+          <option value="XXL">XXL</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="stock" class="form-label">Quantity</label>
+        <input type="number" class="form-control" id="stock" name="stock" required>
+      </div>
       <div class="mb-3">
         <label for="cost_price" class="form-label">Cost Price (₹)</label>
         <input type="number" step="0.01" class="form-control" id="cost_price" name="cost_price" required>
       </div>
       <div class="mb-3">
-        <label for="selling_price" class="form-label">Selling Price (₹)</label>
-        <input type="number" step="0.01" class="form-control" id="selling_price" name="selling_price" required>
+        <label for="margin_percent" class="form-label">Margin (%)</label>
+        <input type="number" step="0.01" class="form-control" id="margin_percent" name="margin_percent" required>
       </div>
       <div class="mb-3">
-        <label for="stock" class="form-label">Initial Stock</label>
-        <input type="number" class="form-control" id="stock" name="stock" required>
+        <label for="margin_rs" class="form-label">Margin (₹)</label>
+        <input type="number" step="0.01" class="form-control" id="margin_rs" name="margin_rs" required>
+      </div>
+      <div class="mb-3">
+        <label for="selling_price" class="form-label">Selling Price (₹)</label>
+        <input type="number" step="0.01" class="form-control" id="selling_price" name="selling_price" required>
       </div>
       <button type="submit" class="btn btn-success">Save Product</button>
       <a href="/products" class="btn btn-secondary">Cancel</a>

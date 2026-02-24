@@ -40,22 +40,48 @@
     <h1 class="edit-title"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Product: <%= product.name %></h1>
     <form action="/products/update/<%= product.id %>" method="POST">
       <div class="mb-3">
+        <label for="category" class="form-label">Category</label>
+        <input type="text" class="form-control" id="category" name="category" value="<%= product.category %>" required>
+      </div>
+      <div class="mb-3">
         <label for="name" class="form-label">Product Name</label>
         <input type="text" class="form-control" id="name" name="name" value="<%= product.name %>" required>
       </div>
-      
+      <div class="mb-3">
+        <label for="supplier" class="form-label">Supplier</label>
+        <input type="text" class="form-control" id="supplier" name="supplier" value="<%= product.supplier %>" required>
+      </div>
+      <div class="mb-3">
+        <label for="size" class="form-label">Size</label>
+        <select class="form-control" id="size" name="size" required>
+          <option value="">Select Size</option>
+          <option value="S" <%= product.size === 'S' ? 'selected' : '' %>>S</option>
+          <option value="M" <%= product.size === 'M' ? 'selected' : '' %>>M</option>
+          <option value="L" <%= product.size === 'L' ? 'selected' : '' %>>L</option>
+          <option value="XL" <%= product.size === 'XL' ? 'selected' : '' %>>XL</option>
+          <option value="XXL" <%= product.size === 'XXL' ? 'selected' : '' %>>XXL</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="stock" class="form-label">Quantity</label>
+        <input type="number" class="form-control" id="stock" name="stock" value="<%= product.stock %>" required>
+        <div class="form-text">You can increase or decrease this number to restock or adjust inventory.</div>
+      </div>
       <div class="mb-3">
         <label for="cost_price" class="form-label">Cost Price (₹)</label>
         <input type="number" step="0.01" class="form-control" id="cost_price" name="cost_price" value="<%= product.cost_price %>" required>
       </div>
       <div class="mb-3">
-        <label for="selling_price" class="form-label">Selling Price (₹)</label>
-        <input type="number" step="0.01" class="form-control" id="selling_price" name="selling_price" value="<%= product.selling_price %>" required>
+        <label for="margin_percent" class="form-label">Margin (%)</label>
+        <input type="number" step="0.01" class="form-control" id="margin_percent" name="margin_percent" value="<%= product.margin_percent %>" required>
       </div>
       <div class="mb-3">
-        <label for="stock" class="form-label">Current Stock</label>
-        <input type="number" class="form-control" id="stock" name="stock" value="<%= product.stock %>" required>
-        <div class="form-text">You can increase or decrease this number to restock or adjust inventory.</div>
+        <label for="margin_rs" class="form-label">Margin (₹)</label>
+        <input type="number" step="0.01" class="form-control" id="margin_rs" name="margin_rs" value="<%= product.margin_rs %>" required>
+      </div>
+      <div class="mb-3">
+        <label for="selling_price" class="form-label">Selling Price (₹)</label>
+        <input type="number" step="0.01" class="form-control" id="selling_price" name="selling_price" value="<%= product.selling_price %>" required>
       </div>
       <button type="submit" class="btn btn-primary">Update Product</button>
       <a href="/products/<%= product.id %>" class="btn btn-secondary">Cancel</a>

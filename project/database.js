@@ -17,10 +17,16 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_code TEXT UNIQUE NOT NULL,
+      category TEXT NOT NULL,
       name TEXT NOT NULL,
-      cost_price REAL NOT NULL,
-      selling_price REAL NOT NULL,
+      supplier TEXT NOT NULL,
+      size TEXT NOT NULL,
       stock INTEGER NOT NULL DEFAULT 0,
+      cost_price REAL NOT NULL,
+      margin_percent REAL NOT NULL,
+      margin_rs REAL NOT NULL,
+      selling_price REAL NOT NULL,
       qr_code TEXT UNIQUE
     )
   `, (err) => {
