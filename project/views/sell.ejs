@@ -64,7 +64,7 @@
     <form action="/sell" method="POST">
       <div class="mb-3">
         <label for="product_id" class="form-label">Select Product</label>
-        <select class="form-select" id="product_id" name="product_id" required>
+        <select class="form-select" id="product_id" name="product_id">
           <option value="">-- Choose product --</option>
           <% products.forEach(p => { %>
             <option value="<%= p.id %>" <%= product && product.id == p.id ? 'selected' : '' %>>
@@ -76,7 +76,7 @@
 
       <div class="mb-3">
         <label for="quantity" class="form-label">Quantity</label>
-        <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+        <input type="number" class="form-control" id="quantity" name="quantity" min="1">
       </div>
 
       <h4 class="mt-4">Customer Details (optional)</h4>
