@@ -2,71 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const QRCode = require('qrcode');
-const multer = require('multer');
-const csv = require('csv-parser');
-const fs = require('fs');
-const upload = multer({ dest: 'uploads/' });
+// ...existing code...
 
-// Show CSV upload form
-router.get('/upload-csv', (req, res) => {
-  res.render('products/upload_csv');
-});
-
-// Handle CSV upload and import
-router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
-  if (!req.file) return res.status(400).send('No file uploaded');
-  const results = [];
-  fs.createReadStream(req.file.path)
-    .pipe(csv())
-    .on('data', (data) => results.push(data))
-    .on('end', () => {
-      // Accept columns: name, category, supplier, cost_price, margin_percent, margin_rs, selling_price, size, stock/quantity
-      const seenCodes = new Set();
-      const dbOps = results.map(row => {
-        return new Promise((resolve, reject) => {
-          const code = (row.category + '_' + row.name + '_' + row.supplier).replace(/\s+/g, '').toUpperCase();
-          if (seenCodes.has(code)) {
-            // Already processed in this batch, skip
-            return resolve();
-          }
-          seenCodes.add(code);
-          // Parse prices and stock/quantity, handle missing columns
-          const cost_price = row.cost_price ? parseFloat(row.cost_price) : (row['Cost price'] ? parseFloat(row['Cost price']) : 0);
-          const margin_percent = row.margin_percent ? parseFloat(row.margin_percent) : (row['Margin (%)'] ? parseFloat(row['Margin (%)']) : 0);
-          const margin_rs = row.margin_rs ? parseFloat(row.margin_rs) : (row['Margin (Amount)'] ? parseFloat(row['Margin (Amount)']) : 0);
-          const selling_price = row.selling_price ? parseFloat(row.selling_price) : (row['Selling price'] ? parseFloat(row['Selling price']) : 0);
-          const stock = row.stock ? parseInt(row.stock) : (row.quantity ? parseInt(row.quantity) : 0);
-          db.get('SELECT id FROM products WHERE qr_code = ? OR product_code = ?', [code, code], (err, product) => {
-            if (err) return reject(err);
-            if (product) {
-              // Product exists, skip
-              return resolve();
-            }
-            // Insert product, then variant
-            db.run('INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [code, row.category, row.name, row.supplier, cost_price, margin_percent, margin_rs, selling_price, code], function(err3) {
-              if (err3) {
-                // If UNIQUE constraint error, skip
-                if (err3.code === 'SQLITE_CONSTRAINT') return resolve();
-                return reject(err3);
-              }
-              const newId = this.lastID;
-              // Do not add variant; resolve immediately
-              resolve();
-            });
-          });
-        });
-      });
-      Promise.all(dbOps)
-        .then(() => {
-          fs.unlinkSync(req.file.path);
-          res.redirect('/products');
-        })
-        .catch(e => {
-          fs.unlinkSync(req.file.path);
-          res.status(500).send('Error importing CSV: ' + e.message);
-        });
-    });
-});
+// ...existing code...
 router.post('/delete/:id', (req, res) => {
   const id = req.params.id;
   // First, delete sale_items referencing this product
