@@ -1,0 +1,165 @@
+/* Custom styles for InventoryProject. Add branding tweaks here. */
+body {
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+  min-height: 100vh;
+  transition: background 0.5s;
+}
+
+.navbar-brand {
+  font-weight: bold;
+  letter-spacing: 1px;
+  font-size: 1.5rem;
+  color: #2563eb !important;
+  text-shadow: 0 2px 8px rgba(37,99,235,0.08);
+}
+
+.navbar {
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  background: #fff !important;
+}
+
+.card {
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  transition: box-shadow 0.3s, transform 0.2s;
+  border: none;
+  background: #fff;
+}
+.card:hover {
+  box-shadow: 0 8px 32px rgba(37,99,235,0.10);
+  transform: translateY(-4px) scale(1.02);
+}
+
+.dashboard-title, .add-title, .edit-title, .sale-title, .product-title {
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #2563eb;
+  text-shadow: 0 2px 8px rgba(37,99,235,0.08);
+}
+
+.btn-primary, .btn-success, .btn-warning, .btn-danger, .btn-info, .btn-secondary {
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+.btn-primary {
+  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+}
+.btn-success {
+  background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
+  color: #065f46;
+}
+.btn-warning {
+  background: linear-gradient(90deg, #f59e42 0%, #fef08a 100%);
+  color: #92400e;
+}
+.btn-danger {
+  background: linear-gradient(90deg, #ef4444 0%, #fca5a5 100%);
+  color: #fff;
+}
+.btn-info {
+  background: linear-gradient(90deg, #38bdf8 0%, #bae6fd 100%);
+  color: #075985;
+}
+.btn-secondary {
+  background: linear-gradient(90deg, #64748b 0%, #cbd5e1 100%);
+  color: #1e293b;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+
+.badge {
+  font-size: 1rem;
+  border-radius: 6px;
+  padding: 0.5em 0.8em;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.table th {
+  background: #e0e7ef;
+  color: #334155;
+  font-weight: 700;
+}
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: #f1f5f9;
+}
+
+.form-label {
+  font-weight: 700;
+  color: #2563eb;
+}
+.form-control {
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s;
+}
+.form-control:focus {
+  box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+  border-color: #2563eb;
+}
+
+.alert {
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+/* Hero banner for landing page */
+.hero-banner {
+  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+  color: #fff;
+  border-radius: 18px;
+  padding: 2.5rem 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 24px rgba(37,99,235,0.10);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero-banner h1 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+}
+.hero-banner p {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
+.hero-banner .btn {
+  font-size: 1.1rem;
+  padding: 0.75em 2em;
+}
+
+/* Subtle fade-in animation */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 1s ease-in forwards;
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+  .container, .container-fluid {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+  .hero-banner h1 {
+    font-size: 1.5rem;
+  }
+  .hero-banner p {
+    font-size: 1rem;
+  }
+}
