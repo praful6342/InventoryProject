@@ -15,7 +15,8 @@ const app = express();
 const PORT = 3000;
 
 // Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());                     // Parse JSON bodies (for fetch requests)
+app.use(bodyParser.urlencoded({ extended: true })); // Parse form data
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Set view engine

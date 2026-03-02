@@ -62,15 +62,17 @@
       </div>
     </div>
   </nav>
+
   <div class="container mt-4">
     <h1 class="dashboard-title"><i class="fa-solid fa-boxes-stacked me-2"></i>Products Dashboard</h1>
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <a href="/products/add" class="btn btn-success">Add Product</a>
+      <button type="button" id="add-inline-product" class="btn btn-success">Add New Product</button>
       <div>
         <span id="update-status" class="text-muted me-2"></span>
         <button id="refresh-now" class="btn btn-sm btn-outline-secondary">Refresh Now</button>
       </div>
     </div>
+
     <form id="bulk-delete-form" method="POST" action="/products/bulk-delete" onsubmit="return confirm('Are you sure you want to delete the selected products? This action cannot be undone.');">
       <div class="mb-2">
         <input type="checkbox" id="select-all"> <label for="select-all" class="ms-1">Select All</label>
@@ -93,17 +95,35 @@
           </tr>
         </thead>
         <tbody id="products-table-body">
-          <tr><td colspan="7" class="text-center">Loading...</td></tr>
+          <!-- Data populated dynamically by JavaScript -->
         </tbody>
+        <!-- Inline Add Product Row (hidden by default) -->
+        <tr id="inline-add-row" style="display:none; background:#e6f7ff;">
+          <td></td>
+          <td><input type="text" id="inline-product_code" placeholder="Product Code" class="form-control"></td>
+          <td><input type="text" id="inline-category" placeholder="Category" class="form-control"></td>
+          <td><input type="text" id="inline-name" placeholder="Name" class="form-control"></td>
+          <td><input type="text" id="inline-supplier" placeholder="Supplier" class="form-control"></td>
+          <td></td>
+          <td><input type="number" id="inline-cost_price" placeholder="Cost Price" class="form-control"></td>
+          <td><input type="number" id="inline-margin_percent" placeholder="Margin %" class="form-control"></td>
+          <td><input type="number" id="inline-margin_rs" placeholder="Margin ₹" class="form-control"></td>
+          <td><input type="number" id="inline-selling_price" placeholder="Selling Price" class="form-control"></td>
+          <td></td>
+          <td class="actions">
+            <button id="save-inline-product" class="btn btn-success btn-sm">Save</button>
+            <button id="cancel-inline-product" type="button" class="btn btn-secondary btn-sm">Cancel</button>
+          </td>
+        </tr>
       </table>
       <button type="submit" class="btn btn-danger" id="bulk-delete-btn" disabled>Delete Selected</button>
     </form>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Function to fetch products and update the table
-    // Store and restore selected product IDs to preserve selection across refreshes
+    // ========== Helper functions for selection persistence ==========
     function getSelectedProductIds() {
       try {
         return JSON.parse(localStorage.getItem('selectedProductIds') || '[]');
@@ -113,6 +133,22 @@
       localStorage.setItem('selectedProductIds', JSON.stringify(ids));
     }
 
+    // Update bulk delete button state
+    function updateBulkDeleteBtn() {
+      const checked = document.querySelectorAll('.product-checkbox:checked').length;
+      document.getElementById('bulk-delete-btn').disabled = checked === 0;
+    }
+
+    // Update "Select All" checkbox state
+    function updateSelectAllCheckbox() {
+      const checkboxes = document.querySelectorAll('.product-checkbox');
+      const checked = document.querySelectorAll('.product-checkbox:checked').length;
+      const selectAll = document.getElementById('select-all');
+      selectAll.checked = checkboxes.length > 0 && checked === checkboxes.length;
+      selectAll.indeterminate = checked > 0 && checked < checkboxes.length;
+    }
+
+    // ========== Fetch products from API and rebuild table ==========
     async function fetchProducts() {
       try {
         const response = await fetch('/api/products?_=' + Date.now());
@@ -121,6 +157,7 @@
 
         const selectedIds = new Set(getSelectedProductIds());
         const tbody = document.getElementById('products-table-body');
+
         if (products.length === 0) {
           tbody.innerHTML = '<tr><td colspan="13" class="text-center">No products found.</td></tr>';
         } else {
@@ -155,104 +192,115 @@
             </tr>
           `).join('');
         }
-    // Bulk select/deselect logic
-    function updateBulkDeleteBtn() {
-      const tbody = document.getElementById('products-table-body');
-      const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
-      const checked = tbody.querySelectorAll('.product-checkbox:checked').length;
-      bulkDeleteBtn.disabled = checked === 0;
-    }
-    function updateSelectAllCheckbox() {
-      const tbody = document.getElementById('products-table-body');
-      const selectAll = document.getElementById('select-all');
-      const checkboxes = tbody.querySelectorAll('.product-checkbox');
-      const checked = tbody.querySelectorAll('.product-checkbox:checked').length;
-      selectAll.checked = checkboxes.length > 0 && checked === checkboxes.length;
-      selectAll.indeterminate = checked > 0 && checked < checkboxes.length;
-    }
-    document.addEventListener('DOMContentLoaded', function() {
-      const selectAll = document.getElementById('select-all');
-      const tbody = document.getElementById('products-table-body');
-      // Restore selection on page load
-      setTimeout(() => {
-        const selectedIds = new Set(getSelectedProductIds());
-        tbody.querySelectorAll('.product-checkbox').forEach(cb => {
-          cb.checked = selectedIds.has(cb.value) || selectedIds.has(Number(cb.value));
-        });
+
+        // Re‑apply selection and update UI
         updateBulkDeleteBtn();
         updateSelectAllCheckbox();
-      }, 100);
-      selectAll.addEventListener('change', function() {
-        const checkboxes = tbody.querySelectorAll('.product-checkbox');
-        checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
-        // Save selected IDs
-        const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-        setSelectedProductIds(ids);
-        updateBulkDeleteBtn();
-      });
-      tbody.addEventListener('change', function(e) {
-        if (e.target.classList.contains('product-checkbox')) {
-          // Save selected IDs
-          const checkboxes = tbody.querySelectorAll('.product-checkbox');
-          const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-          setSelectedProductIds(ids);
-          updateBulkDeleteBtn();
-          updateSelectAllCheckbox();
-        }
-      });
-    });
-    // After table update, re-bind select all and update button, and restore selection
-    function rebindBulkSelect() {
-      updateBulkDeleteBtn();
-      updateSelectAllCheckbox();
-      const selectAll = document.getElementById('select-all');
-      const tbody = document.getElementById('products-table-body');
-      // Restore selection after table update
-      const selectedIds = new Set(getSelectedProductIds());
-      tbody.querySelectorAll('.product-checkbox').forEach(cb => {
-        cb.checked = selectedIds.has(cb.value) || selectedIds.has(Number(cb.value));
-      });
-      selectAll.addEventListener('change', function() {
-        const checkboxes = tbody.querySelectorAll('.product-checkbox');
-        checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
-        // Save selected IDs
-        const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-        setSelectedProductIds(ids);
-        updateBulkDeleteBtn();
-      });
-      tbody.addEventListener('change', function(e) {
-        if (e.target.classList.contains('product-checkbox')) {
-          // Save selected IDs
-          const checkboxes = tbody.querySelectorAll('.product-checkbox');
-          const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-          setSelectedProductIds(ids);
-          updateBulkDeleteBtn();
-          updateSelectAllCheckbox();
-        }
-      });
-    }
-    // Call after fetchProducts updates table
-    setTimeout(rebindBulkSelect, 0);
         document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
       } catch (error) {
         console.error(error);
-        document.getElementById('products-table-body').innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error loading products</td></tr>';
+        document.getElementById('products-table-body').innerHTML = '<tr><td colspan="13" class="text-center text-danger">Error loading products</td></tr>';
       }
     }
 
-    // Initial load
-    fetchProducts();
-
-    // Real-time updates using Socket.IO
-    const socket = io();
-    socket.on('products-updated', () => {
+    // ========== Event Listeners (attached once on page load) ==========
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initial load
       fetchProducts();
-    });
 
-    // Manual refresh button
-    document.getElementById('refresh-now').addEventListener('click', fetchProducts);
+      // Socket.io for real‑time updates
+      const socket = io();
+      socket.on('products-updated', fetchProducts);
+
+      // Manual refresh button
+      document.getElementById('refresh-now').addEventListener('click', fetchProducts);
+
+      // "Select All" checkbox
+      const selectAll = document.getElementById('select-all');
+      selectAll.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+        const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+        setSelectedProductIds(ids);
+        updateBulkDeleteBtn();
+      });
+
+      // Delegate change events on checkboxes (inside tbody)
+      document.getElementById('products-table-body').addEventListener('change', function(e) {
+        if (e.target.classList.contains('product-checkbox')) {
+          const checkboxes = document.querySelectorAll('.product-checkbox');
+          const ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+          setSelectedProductIds(ids);
+          updateBulkDeleteBtn();
+          updateSelectAllCheckbox();
+        }
+      });
+
+      // Inline Add: show row
+      document.getElementById('add-inline-product').addEventListener('click', function() {
+        document.getElementById('inline-add-row').style.display = '';
+        this.disabled = true;
+      });
+
+      // Inline Add: cancel
+      document.getElementById('cancel-inline-product').addEventListener('click', function() {
+        document.getElementById('inline-add-row').style.display = 'none';
+        document.getElementById('add-inline-product').disabled = false;
+        // Clear input fields
+        document.getElementById('inline-product_code').value = '';
+        document.getElementById('inline-category').value = '';
+        document.getElementById('inline-name').value = '';
+        document.getElementById('inline-supplier').value = '';
+        document.getElementById('inline-cost_price').value = '';
+        document.getElementById('inline-margin_percent').value = '';
+        document.getElementById('inline-margin_rs').value = '';
+        document.getElementById('inline-selling_price').value = '';
+      });
+
+      // Inline Add: save
+      document.getElementById('save-inline-product').addEventListener('click', function() {
+        const name = document.getElementById('inline-name').value.trim();
+        const category = document.getElementById('inline-category').value.trim();
+        const supplier = document.getElementById('inline-supplier').value.trim();
+        const cost_price = document.getElementById('inline-cost_price').value.trim();
+        const margin_percent = document.getElementById('inline-margin_percent').value.trim();
+        const margin_rs = document.getElementById('inline-margin_rs').value.trim();
+        const selling_price = document.getElementById('inline-selling_price').value.trim();
+
+        if (!name || !category || !supplier || !cost_price || !margin_percent || !margin_rs || !selling_price) {
+          alert('Please fill all fields');
+          return;
+        }
+
+        fetch('/products/inline-add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, category, supplier, cost_price, margin_percent, margin_rs, selling_price })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            // Refresh the product list
+            fetchProducts();
+            // Hide inline row and re‑enable add button
+            document.getElementById('inline-add-row').style.display = 'none';
+            document.getElementById('add-inline-product').disabled = false;
+            // Clear fields
+            document.getElementById('inline-product_code').value = '';
+            document.getElementById('inline-category').value = '';
+            document.getElementById('inline-name').value = '';
+            document.getElementById('inline-supplier').value = '';
+            document.getElementById('inline-cost_price').value = '';
+            document.getElementById('inline-margin_percent').value = '';
+            document.getElementById('inline-margin_rs').value = '';
+            document.getElementById('inline-selling_price').value = '';
+          } else {
+            alert('Error: ' + (data.error || 'Could not add product'));
+          }
+        })
+        .catch(() => alert('Network error'));
+      });
+    });
   </script>
 </body>
-</html>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </html>

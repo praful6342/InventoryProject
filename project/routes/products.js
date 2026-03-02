@@ -2,9 +2,79 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const QRCode = require('qrcode');
-// ...existing code...
 
-// ...existing code...
+// ========== NEW API ROUTES ==========
+
+// API: Get all products with their variants (used for live table updates)
+router.get('/api/products', (req, res) => {
+  db.all('SELECT * FROM products ORDER BY id DESC', [], (err, products) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (products.length === 0) return res.json([]);
+
+    let pending = products.length;
+    products.forEach(product => {
+      db.all('SELECT size, stock FROM product_variants WHERE product_id = ?', [product.id], (err, variants) => {
+        if (err) {
+          console.error(err);
+          product.variants = [];
+        } else {
+          product.variants = variants;
+        }
+        pending--;
+        if (pending === 0) {
+          res.json(products);
+        }
+      });
+    });
+  });
+});
+
+// API: Serve QR code image (if not already defined elsewhere)
+router.get('/api/qr/:code', (req, res) => {
+  const code = req.params.code;
+  QRCode.toDataURL(code, (err, url) => {
+    if (err) {
+      res.status(500).send('QR error');
+    } else {
+      // Remove the data:image/png;base64, prefix to send raw image
+      const base64Data = url.replace(/^data:image\/png;base64,/, '');
+      const img = Buffer.from(base64Data, 'base64');
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Content-Length': img.length
+      });
+      res.end(img);
+    }
+  });
+});
+
+// ========== EXISTING ROUTES (unchanged) ==========
+
+// Inline add product (AJAX)
+router.post('/inline-add', (req, res) => {
+  const { name, category, supplier, cost_price, margin_percent, margin_rs, selling_price } = req.body;
+  if (!name || !category || !supplier || !cost_price || !margin_percent || !margin_rs || !selling_price) {
+    return res.json({ success: false, error: 'Missing fields' });
+  }
+  // Generate product_code (simple)
+  const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
+  db.run(
+    'INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, productCode],
+    function(err) {
+      if (err) {
+        console.error(err);
+        return res.json({ success: false, error: 'DB error' });
+      }
+      return res.json({ success: true, id: this.lastID });
+    }
+  );
+});
+
+// Delete product (with cleanup of related records)
 router.post('/delete/:id', (req, res) => {
   const id = req.params.id;
   // First, delete sale_items referencing this product
@@ -31,8 +101,7 @@ router.post('/delete/:id', (req, res) => {
   });
 });
 
-
-// List products
+// List products (server‑side rendered page)
 router.get('/', (req, res) => {
   db.all('SELECT * FROM products', [], (err, rows) => {
     if (err) {
@@ -48,7 +117,7 @@ router.get('/add', (req, res) => {
   res.render('products/add');
 });
 
-// Add product
+// Add product (with variants)
 router.post('/add', (req, res) => {
   const {
     category,
@@ -60,9 +129,7 @@ router.post('/add', (req, res) => {
     selling_price,
     sizes
   } = req.body;
-  // No required field checks; allow null/empty values
 
-  // Generate product_code and qr_code: category + name + supplier (all uppercase, no spaces)
   const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
 
   db.run(
@@ -74,7 +141,6 @@ router.post('/add', (req, res) => {
         return res.status(500).send('Error saving product');
       }
       const productId = this.lastID;
-      // Ensure sizes is always an array
       let sizeEntries = [];
       if (Array.isArray(sizes)) {
         sizeEntries = sizes;
@@ -102,7 +168,6 @@ router.post('/add', (req, res) => {
           }
         );
       }
-      // If no valid variants were started, redirect immediately
       if (started === 0) res.redirect('/products');
     }
   );
@@ -119,7 +184,6 @@ router.get('/:id', (req, res) => {
     if (!product) {
       return res.status(404).send('Product not found');
     }
-    // Generate QR code image as data URL using the new product ID string
     QRCode.toDataURL(product.qr_code, (err, url) => {
       if (err) {
         console.error(err);
@@ -130,7 +194,7 @@ router.get('/:id', (req, res) => {
   });
 });
 
-// Show edit product form (NEW)
+// Show edit product form
 router.get('/edit/:id', (req, res) => {
   const id = req.params.id;
   db.get('SELECT * FROM products WHERE id = ?', [id], (err, productRow) => {
@@ -146,14 +210,13 @@ router.get('/edit/:id', (req, res) => {
         console.error(err2);
         return res.status(500).send('Database error');
       }
-      // Create a plain object with all product fields and variants
       const product = { ...productRow, variants: variants || [] };
       res.render('products/edit', { product });
     });
   });
 });
 
-// Update product (NEW)
+// Update product
 router.post('/update/:id', (req, res) => {
   const id = req.params.id;
   const {
@@ -167,9 +230,6 @@ router.post('/update/:id', (req, res) => {
     sizes
   } = req.body;
 
-  // No required field checks; allow null/empty values
-
-  // Regenerate product_code and qr_code
   const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
 
   db.run(
@@ -180,7 +240,6 @@ router.post('/update/:id', (req, res) => {
         console.error(err);
         return res.status(500).send('Error updating product');
       }
-      // Remove old variants and insert new ones
       db.run('DELETE FROM product_variants WHERE product_id = ?', [id], function(err2) {
         if (err2) {
           console.error('Error deleting old variants:', err2);
@@ -210,12 +269,11 @@ router.post('/update/:id', (req, res) => {
   );
 });
 
-// Bulk delete products (real-time update)
+// Bulk delete products (with real‑time update)
 router.post('/bulk-delete', (req, res) => {
   let ids = req.body.productIds;
   if (!ids) return res.redirect('/products');
   if (!Array.isArray(ids)) ids = [ids];
-  // Remove from sale_items, product_variants, then products
   const placeholders = ids.map(() => '?').join(',');
   db.serialize(() => {
     db.run(`DELETE FROM sale_items WHERE product_id IN (${placeholders})`, ids, function(err) {

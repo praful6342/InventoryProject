@@ -39,7 +39,7 @@
         <form method="GET" action="/products/dashboard">
             <input type="text" name="search" placeholder="Search products...">
             <button type="submit">Search</button>
-            <a href="/products/add"><button type="button">Add Product</button></a>
+            <button type="button" id="add-inline-product">Add New Product</button>
         </form>
     </div>
     <table>
@@ -67,8 +67,64 @@
                 </td>
             </tr>
         <% }); %>
+        <!-- Inline Add Product Row (hidden by default) -->
+        <tr id="inline-add-row" style="display:none; background:#e6f7ff;">
+            <td><input type="text" id="inline-name" placeholder="Name" class="form-control"></td>
+            <td><input type="text" id="inline-category" placeholder="Category" class="form-control"></td>
+            <td><input type="number" id="inline-quantity" placeholder="Quantity" class="form-control"></td>
+            <td><input type="number" id="inline-price" placeholder="Price" class="form-control"></td>
+            <td class="actions">
+                <button id="save-inline-product">Save</button>
+                <button id="cancel-inline-product" type="button">Cancel</button>
+            </td>
+        </tr>
         </tbody>
     </table>
 </div>
 </body>
+
+<script>
+// Show inline add row
+document.getElementById('add-inline-product').addEventListener('click', function() {
+    document.getElementById('inline-add-row').style.display = '';
+    this.disabled = true;
+});
+
+// Cancel inline add
+document.getElementById('cancel-inline-product').addEventListener('click', function() {
+    document.getElementById('inline-add-row').style.display = 'none';
+    document.getElementById('add-inline-product').disabled = false;
+    // Clear fields
+    document.getElementById('inline-name').value = '';
+    document.getElementById('inline-category').value = '';
+    document.getElementById('inline-quantity').value = '';
+    document.getElementById('inline-price').value = '';
+});
+
+// Save inline product via AJAX
+document.getElementById('save-inline-product').addEventListener('click', function() {
+    const name = document.getElementById('inline-name').value.trim();
+    const category = document.getElementById('inline-category').value.trim();
+    const quantity = document.getElementById('inline-quantity').value.trim();
+    const price = document.getElementById('inline-price').value.trim();
+    if (!name || !category || !quantity || !price) {
+        alert('Please fill all fields');
+        return;
+    }
+    fetch('/products/inline-add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, category, quantity, price })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Could not add product'));
+        }
+    })
+    .catch(() => alert('Network error'));
+});
+</script>
 </html>
