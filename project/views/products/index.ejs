@@ -66,10 +66,84 @@
   <div class="container mt-4">
     <h1 class="dashboard-title"><i class="fa-solid fa-boxes-stacked me-2"></i>Products Dashboard</h1>
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <button type="button" id="add-inline-product" class="btn btn-success">Add New Product</button>
+      <button type="button" id="add-product-modal-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
       <div>
         <span id="update-status" class="text-muted me-2"></span>
         <button id="refresh-now" class="btn btn-sm btn-outline-secondary">Refresh Now</button>
+      </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <form id="add-product-form">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addProductModalLabel">Add New Product</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label for="modal-category" class="form-label">Category</label>
+                  <input type="text" class="form-control" id="modal-category" name="category" required>
+                </div>
+                <div class="col-md-4">
+                  <label for="modal-name" class="form-label">Product Name</label>
+                  <input type="text" class="form-control" id="modal-name" name="name" required>
+                </div>
+                <div class="col-md-4">
+                  <label for="modal-supplier" class="form-label">Supplier</label>
+                  <input type="text" class="form-control" id="modal-supplier" name="supplier" required>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Sizes & Stock</label>
+                  <div id="modal-sizes-container">
+                    <div class="row mb-2 modal-size-row">
+                      <div class="col-md-5">
+                        <select class="form-control" name="sizes[0][size]">
+                          <option value="">Select Size</option>
+                          <option value="S">S</option>
+                          <option value="M">M</option>
+                          <option value="L">L</option>
+                          <option value="XL">XL</option>
+                          <option value="XXL">XXL</option>
+                        </select>
+                      </div>
+                      <div class="col-md-5">
+                        <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
+                      </div>
+                      <div class="col-md-2">
+                        <button type="button" class="btn btn-danger remove-modal-size-row" style="display:none;">Remove</button>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-primary mt-2" id="add-modal-size-row">Add Size</button>
+                </div>
+                <div class="col-md-4">
+                  <label for="modal-cost_price" class="form-label">Cost Price (₹)</label>
+                  <input type="number" step="0.01" class="form-control" id="modal-cost_price" name="cost_price" required>
+                </div>
+                <div class="col-md-4">
+                  <label for="modal-margin_percent" class="form-label">Margin (%)</label>
+                  <input type="number" step="0.01" class="form-control" id="modal-margin_percent" name="margin_percent" required>
+                </div>
+                <div class="col-md-4">
+                  <label for="modal-margin_rs" class="form-label">Margin (₹)</label>
+                  <input type="number" step="0.01" class="form-control" id="modal-margin_rs" name="margin_rs" required>
+                </div>
+                <div class="col-md-4">
+                  <label for="modal-selling_price" class="form-label">Selling Price (₹)</label>
+                  <input type="number" step="0.01" class="form-control" id="modal-selling_price" name="selling_price" required>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Save Product</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -121,6 +195,115 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // Modal size row logic
+      let modalSizeIndex = 1;
+      document.getElementById('add-modal-size-row').addEventListener('click', function() {
+        const container = document.getElementById('modal-sizes-container');
+        const newRow = document.createElement('div');
+        newRow.className = 'row mb-2 modal-size-row';
+        newRow.innerHTML = `
+          <div class="col-md-5">
+            <select class="form-control" name="sizes[${modalSizeIndex}][size]">
+              <option value="">Select Size</option>
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <input type="number" class="form-control" name="sizes[${modalSizeIndex}][stock]" placeholder="Quantity">
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="btn btn-danger remove-modal-size-row">Remove</button>
+          </div>
+        `;
+        container.appendChild(newRow);
+        updateModalRemoveButtons();
+        modalSizeIndex++;
+      });
+      function updateModalRemoveButtons() {
+        const rows = document.querySelectorAll('.modal-size-row');
+        rows.forEach((row, idx) => {
+          const btn = row.querySelector('.remove-modal-size-row');
+          if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
+          btn && btn.addEventListener('click', function() {
+            row.remove();
+            updateModalRemoveButtons();
+          });
+        });
+      }
+      updateModalRemoveButtons();
+
+      // Handle add product form submit
+      document.getElementById('add-product-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        // Convert FormData to JSON
+        const data = {};
+        formData.forEach((value, key) => {
+          // Handle nested sizes[]
+          if (key.startsWith('sizes[')) {
+            const match = key.match(/sizes\[(\d+)\]\[(\w+)\]/);
+            if (match) {
+              const idx = match[1];
+              const field = match[2];
+              data.sizes = data.sizes || {};
+              data.sizes[idx] = data.sizes[idx] || {};
+              data.sizes[idx][field] = value;
+            }
+          } else {
+            data[key] = value;
+          }
+        });
+        // Convert sizes object to array
+        if (data.sizes) {
+          data.sizes = Object.values(data.sizes);
+        }
+        try {
+          const res = await fetch('/products/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          if (res.ok) {
+            // Hide modal, refresh products
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addProductModal'));
+            modal.hide();
+            fetchProducts();
+            form.reset();
+            // Reset sizes
+            document.getElementById('modal-sizes-container').innerHTML = `<div class="row mb-2 modal-size-row">
+              <div class="col-md-5">
+                <select class="form-control" name="sizes[0][size]">
+                  <option value="">Select Size</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
+              </div>
+              <div class="col-md-5">
+                <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
+              </div>
+              <div class="col-md-2">
+                <button type="button" class="btn btn-danger remove-modal-size-row" style="display:none;">Remove</button>
+              </div>
+            </div>`;
+            modalSizeIndex = 1;
+            updateModalRemoveButtons();
+          } else {
+            alert('Error saving product');
+          }
+        } catch (err) {
+          alert('Network error');
+        }
+      });
+    </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     // ========== Helper functions for selection persistence ==========
