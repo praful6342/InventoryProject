@@ -10,6 +10,7 @@ const productRoutes = require('./routes/products');
 const apiRoutes = require('./routes/api');
 const sellRoutes = require('./routes/sell');
 const billRoutes = require('./routes/bill');
+const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 const PORT = 3000;
@@ -23,16 +24,47 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+
 // Use routes
-app.use('/scan', scanRoutes);
 app.use('/products', productRoutes);
+app.use('/scan', scanRoutes);
 app.use('/api', apiRoutes);
 app.use('/sell', sellRoutes);
 app.use('/bill', billRoutes);
+app.use('/dashboard', dashboardRoutes);
 
-// Home route - dashboard
+// Home route - show dashboard
+const db = require('./database');
 app.get('/', (req, res) => {
-  res.render('index');
+  // Get today's date in YYYY-MM-DD
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  db.get(
+    `SELECT COALESCE(SUM(si.quantity), 0) AS qtySold, COALESCE(SUM(s.profit), 0) AS profit
+     FROM sales s
+     JOIN sale_items si ON s.id = si.sale_id
+     WHERE DATE(s.created_at) = ?`,
+    [todayStr],
+    (err, salesRow) => {
+      if (err) return res.status(500).send('Error fetching sales data');
+      db.get(
+        `SELECT COALESCE(SUM(stock), 0) AS stock FROM product_variants`,
+        [],
+        (err2, stockRow) => {
+          if (err2) return res.status(500).send('Error fetching stock data');
+          res.render('dashboard', {
+            qtySold: salesRow.qtySold,
+            profit: salesRow.profit.toFixed(2),
+            stock: stockRow.stock
+          });
+        }
+      );
+    }
+  );
 });
 
 // HTTPS options (self-signed certificate)
