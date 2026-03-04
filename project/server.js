@@ -1,4 +1,5 @@
 const express = require('express');
+const session = require('express-session');
 const path = require('path');
 const bodyParser = require('body-parser');
 const https = require('https');   // for HTTPS
@@ -15,10 +16,19 @@ const dashboardRoutes = require('./routes/dashboard');
 const app = express();
 const PORT = 3000;
 
+
 // Middleware
 app.use(express.json());                     // Parse JSON bodies (for fetch requests)
 app.use(bodyParser.urlencoded({ extended: true })); // Parse form data
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Session middleware (for cart/session storage)
+app.use(session({
+  secret: 'inventory-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false } // Set to true if using HTTPS in production
+}));
 
 // Set view engine
 app.set('view engine', 'ejs');

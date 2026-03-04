@@ -12,33 +12,32 @@ function generateBillNumber() {
   return `BILL-${yyyy}${mm}${dd}-${random}`;
 }
 
-// GET /sell - show sell form (optional product ID pre-filled)
-
-
-// Only allow access via QR scan, not manual selection
+// GET /sell - show sell form for a scanned product, or show cart if no product
 router.get('/', (req, res) => {
-  // If a product is passed as a query param, show info and allow sale
   const productId = req.query.product;
   if (productId) {
     db.get('SELECT * FROM products WHERE id = ?', [productId], (err, product) => {
       if (err || !product) {
-        return res.render('sell', { product: null, variants: [], error: 'Product not found.' });
+        return res.render('sell', { product: null, variants: [], error: 'Product not found.', cart: req.session.cart || [] });
       }
       db.all('SELECT size, stock FROM product_variants WHERE product_id = ?', [productId], (err2, variants) => {
         if (err2) {
-          return res.render('sell', { product, variants: [], error: 'Error loading variants.' });
+          return res.render('sell', { product, variants: [], error: 'Error loading variants.', cart: req.session.cart || [] });
         }
-        res.render('sell', { product, variants, error: null });
+        res.render('sell', { product, variants, error: null, cart: req.session.cart || [] });
       });
     });
   } else {
-    res.render('sell', { product: null, variants: [], error: 'Sales can only be completed by scanning the product QR code.' });
+    // Show cart and customer form if cart has items
+    const cart = req.session.cart || [];
+    res.render('sell', { product: null, variants: [], error: null, cart });
   }
 });
 
-// POST /sell - process the sale
-router.post('/', (req, res) => {
-  const { product_id, size, quantity, customer_name, customer_phone } = req.body;
+
+// POST /sell/add - add a product to the session cart
+router.post('/add', (req, res) => {
+  const { product_id, size, quantity } = req.body;
   if (!product_id || !size || !quantity) {
     return res.status(400).send('Missing product, size, or quantity');
   }
@@ -54,11 +53,40 @@ router.post('/', (req, res) => {
       if (qty > variant.stock) {
         return res.status(400).send('Not enough stock');
       }
-      // Deduct stock
-      db.run('UPDATE product_variants SET stock = stock - ? WHERE product_id = ? AND size = ?', [qty, product_id, size], function(err3) {
-        if (err3) {
-          return res.status(500).send('Error updating stock');
-        }
+      // Add to session cart
+      if (!req.session.cart) req.session.cart = [];
+      req.session.cart.push({
+        product_id: product.id,
+        name: product.name,
+        category: product.category,
+        size,
+        quantity: qty,
+        selling_price: product.selling_price,
+        cost_price: product.cost_price
+      });
+      res.redirect('/sell');
+    });
+  });
+});
+
+// POST /sell/complete - complete the sale for all products in cart
+router.post('/complete', (req, res) => {
+  const { customer_name, customer_phone } = req.body;
+  const cart = req.session.cart || [];
+  if (!cart.length) {
+    return res.status(400).send('Cart is empty');
+  }
+  // Check stock for all items first
+  let stockError = null;
+  let checked = 0;
+  cart.forEach((item, idx) => {
+    db.get('SELECT * FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
+      checked++;
+      if (err || !variant || item.quantity > variant.stock) {
+        stockError = `Not enough stock for ${item.name} (${item.size})`;
+      }
+      if (checked === cart.length) {
+        if (stockError) return res.status(400).send(stockError);
         // Handle customer
         let customerId = null;
         if (customer_name) {
@@ -80,19 +108,30 @@ router.post('/', (req, res) => {
         }
         function createSale() {
           const billNumber = generateBillNumber();
-          const totalAmount = product.selling_price * qty;
-          const profit = (product.selling_price - product.cost_price) * qty;
+          const totalAmount = cart.reduce((sum, item) => sum + item.selling_price * item.quantity, 0);
+          const profit = cart.reduce((sum, item) => sum + (item.selling_price - item.cost_price) * item.quantity, 0);
           db.run('INSERT INTO sales (customer_id, total_amount, profit, bill_number) VALUES (?, ?, ?, ?)', [customerId, totalAmount, profit, billNumber], function(err6) {
             if (err6) return res.status(500).send('Error creating sale');
             const saleId = this.lastID;
-            db.run('INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item) VALUES (?, ?, ?, ?, ?)', [saleId, product_id, qty, product.selling_price, product.selling_price - product.cost_price], function(err7) {
-              if (err7) return res.status(500).send('Error creating sale item');
-              // Redirect to bill page
-              res.redirect('/bill/' + saleId);
+            // Insert all sale items and update stock
+            let inserted = 0;
+            cart.forEach(item => {
+              db.run('INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item) VALUES (?, ?, ?, ?, ?)', [saleId, item.product_id, item.quantity, item.selling_price, item.selling_price - item.cost_price], function(err7) {
+                if (err7) return res.status(500).send('Error creating sale item');
+                db.run('UPDATE product_variants SET stock = stock - ? WHERE product_id = ? AND size = ?', [item.quantity, item.product_id, item.size], function(err8) {
+                  if (err8) return res.status(500).send('Error updating stock');
+                  inserted++;
+                  if (inserted === cart.length) {
+                    // Clear cart and redirect to bill
+                    req.session.cart = [];
+                    res.redirect('/bill/' + saleId);
+                  }
+                });
+              });
             });
           });
         }
-      });
+      }
     });
   });
 });

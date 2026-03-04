@@ -111,12 +111,14 @@
     <div class="row">
       <div class="col-md-6">
         <!-- Scanner container -->
-        <div id="qr-reader"></div>
-        <div id="qr-reader-results" class="mt-3"></div>
-        <!-- Scanner control buttons -->
-        <div class="scanner-controls d-flex gap-2">
-          <button id="stopBtn" class="btn btn-danger">Stop Scanning</button>
-          <button id="startBtn" class="btn btn-success" disabled>Start Scanning</button>
+        <div id="scanner-section">
+          <div id="qr-reader"></div>
+          <div id="qr-reader-results" class="mt-3"></div>
+          <!-- Scanner control buttons -->
+          <div class="scanner-controls d-flex gap-2">
+            <button id="stopBtn" class="btn btn-danger">Stop Scanning</button>
+            <button id="startBtn" class="btn btn-success" disabled>Start Scanning</button>
+          </div>
         </div>
       </div>
       <div class="col-md-6">
@@ -157,6 +159,7 @@
       let html5QrCode = new Html5Qrcode(qrReaderElement.id);
       let isScanning = false;
       let lastScannedId = null; // Store the last scanned product ID
+      const scannerSection = document.getElementById('scanner-section');
 
       const config = { 
         fps: 10, 
@@ -188,6 +191,10 @@
             `;
             resultsDiv.innerHTML = '<div class="alert alert-success">Product loaded</div>';
             refreshBtn.disabled = false; // Enable refresh button
+            // Hide scanner section after successful scan
+            if (scannerSection) {
+              scannerSection.style.display = 'none';
+            }
           })
           .catch(error => {
             console.error(error);
@@ -199,6 +206,9 @@
 
       // Function to start scanning
       function startScanner() {
+        if (scannerSection) {
+          scannerSection.style.display = '';
+        }
         html5QrCode.start(
           { facingMode: "environment" },
           config,
@@ -257,6 +267,10 @@
         resultsDiv.innerHTML = '';
         lastScannedId = null;
         refreshBtn.disabled = true;
+        // Show scanner section again
+        if (scannerSection) {
+          scannerSection.style.display = '';
+        }
       });
 
       // Refresh button: re-fetch details for the last scanned product
