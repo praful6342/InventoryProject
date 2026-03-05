@@ -1,7 +1,13 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'data', 'database.db');
+const dbDir = path.join(__dirname, '..', 'data');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const dbPath = path.join(dbDir, 'database.db');
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -26,9 +32,7 @@ db.serialize(() => {
       selling_price REAL NOT NULL,
       qr_code TEXT UNIQUE
     )
-  `, (err) => {
-    if (err) console.error('Error creating products table:', err);
-  });
+  `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS product_variants (
@@ -38,9 +42,7 @@ db.serialize(() => {
       stock INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
     )
-  `, (err) => {
-    if (err) console.error('Error creating product_variants table:', err);
-  });
+  `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS customers (
@@ -49,9 +51,7 @@ db.serialize(() => {
       phone TEXT,
       email TEXT
     )
-  `, (err) => {
-    if (err) console.error('Error creating customers table:', err);
-  });
+  `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS sales (
@@ -63,9 +63,7 @@ db.serialize(() => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (customer_id) REFERENCES customers(id)
     )
-  `, (err) => {
-    if (err) console.error('Error creating sales table:', err);
-  });
+  `);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS sale_items (
@@ -78,9 +76,7 @@ db.serialize(() => {
       FOREIGN KEY (sale_id) REFERENCES sales(id),
       FOREIGN KEY (product_id) REFERENCES products(id)
     )
-  `, (err) => {
-    if (err) console.error('Error creating sale_items table:', err);
-  });
+  `);
 });
 
 module.exports = db;

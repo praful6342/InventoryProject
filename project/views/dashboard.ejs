@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/custom.css">
 </head>
 <body>
-  <!-- Navigation Bar (updated) -->
   <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
     <div class="container-fluid">
       <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
@@ -48,19 +48,39 @@
       <div class="col-md-4 mb-4">
         <div class="card text-center">
           <div class="card-body">
-            <h5 class="card-title">Current Stock</h5>
+            <h5 class="card-title">Current Stock (units)</h5>
             <p class="display-5 text-primary" id="stock"><%= stock %></p>
           </div>
         </div>
       </div>
     </div>
+
+    <div class="row justify-content-center mt-4">
+      <div class="col-md-6 mb-4">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title">Total Inventory Value (Cost)</h5>
+            <p class="display-6 text-warning">₹<%= totalCost %></p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title">Total Inventory Value (Selling)</h5>
+            <p class="display-6 text-info">₹<%= totalSelling %></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="row justify-content-center mt-4">
       <div class="col-md-8">
         <div class="card p-3">
           <h4 class="mb-3">Quick Links</h4>
           <div class="d-flex flex-wrap gap-3 justify-content-center">
             <a href="/products" class="btn btn-primary"><i class="fa-solid fa-list me-1"></i> Products</a>
-            <a href="/products/add" class="btn btn-success"><i class="fa-solid fa-plus me-1"></i> Add Stock</a>
+            <a href="/products/add" class="btn btn-success"><i class="fa-solid fa-plus me-1"></i> Add Product</a>
             <a href="/scan" class="btn btn-success"><i class="fa-solid fa-qrcode me-1"></i> Scan</a>
           </div>
         </div>

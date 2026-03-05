@@ -1,2 +1,6 @@
-# Ignore database and data files
-/data/
+node_modules/
+data/
+server.key
+server.crt
+.env
+*.log

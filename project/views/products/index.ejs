@@ -44,7 +44,6 @@
   </style>
 </head>
 <body>
-  <!-- Navigation Bar -->
   <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
     <div class="container-fluid">
       <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
@@ -64,6 +63,27 @@
 
   <div class="container mt-4">
     <h1 class="dashboard-title"><i class="fa-solid fa-boxes-stacked me-2"></i>Products Dashboard</h1>
+
+    <!-- Totals Card -->
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title">Total Cost Price of All Products</h5>
+            <p class="display-6 text-warning" id="totalCostPrice">₹0.00</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title">Total Selling Price of All Products</h5>
+            <p class="display-6 text-info" id="totalSellingPrice">₹0.00</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-3">
       <button type="button" id="add-product-modal-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
       <div>
@@ -313,6 +333,22 @@
 
         const selectedIds = new Set(getSelectedProductIds());
         const tbody = document.getElementById('products-table-body');
+
+        // Calculate totals
+        let totalCost = 0, totalSelling = 0;
+        products.forEach(product => {
+          const costPrice = parseFloat(product.cost_price) || 0;
+          const sellingPrice = parseFloat(product.selling_price) || 0;
+          if (product.variants && product.variants.length > 0) {
+            product.variants.forEach(variant => {
+              const stock = parseInt(variant.stock) || 0;
+              totalCost += costPrice * stock;
+              totalSelling += sellingPrice * stock;
+            });
+          }
+        });
+        document.getElementById('totalCostPrice').innerText = `₹${totalCost.toFixed(2)}`;
+        document.getElementById('totalSellingPrice').innerText = `₹${totalSelling.toFixed(2)}`;
 
         if (products.length === 0) {
           tbody.innerHTML = '<tr><td colspan="13" class="text-center">No products found.</td></tr>';
