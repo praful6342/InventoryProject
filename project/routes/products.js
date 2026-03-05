@@ -3,6 +3,13 @@ const router = express.Router();
 const db = require('../database');
 const QRCode = require('qrcode');
 
+// Helper to generate product code
+function generateProductCode(category, name, supplier, sellingPrice) {
+  return `${category}_${name}_${supplier}_${sellingPrice}`
+    .replace(/\s+/g, '')
+    .toUpperCase();
+}
+
 // List products (server‑side rendered page)
 router.get('/', (req, res) => {
   db.all('SELECT * FROM products', [], (err, rows) => {
@@ -32,7 +39,7 @@ router.post('/add', (req, res) => {
     sizes
   } = req.body;
 
-  const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
+  const productCode = generateProductCode(category, name, supplier, selling_price);
 
   db.run(
     `INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -136,7 +143,7 @@ router.post('/update/:id', (req, res) => {
     sizes
   } = req.body;
 
-  const productCode = `${category}_${name}_${supplier}`.replace(/\s+/g, '').toUpperCase();
+  const productCode = generateProductCode(category, name, supplier, selling_price);
 
   db.run(
     `UPDATE products SET product_code = ?, category = ?, name = ?, supplier = ?, cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ?, qr_code = ? WHERE id = ?`,

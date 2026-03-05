@@ -14,10 +14,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('Could not connect to database', err);
   } else {
     console.log('Connected to SQLite database');
+    // Enable foreign key constraints
+    db.run("PRAGMA foreign_keys = ON;");
   }
 });
 
-// Initialize tables
+// Initialize tables (unchanged) ...
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
