@@ -158,16 +158,7 @@
       let isScanning = false;
       let lastScannedId = null; // Store the last scanned product ID
       const scannerSection = document.getElementById('scanner-section');
-
-        .catch(error => {
-          console.error(error);
-          resultsDiv.innerHTML = '<div class="alert alert-danger">Error updating cart</div>';
-          productInfoDiv.innerHTML = '<p class="text-danger">Error updating cart</p>';
-        });
-      }
-        }
-      
-        // Function to fetch and display product details from backend
+      // Function to fetch and display product details from backend
         function fetchScannedProductAndDisplay() {
           fetch('/scan/scan-product', {
             method: 'POST',
