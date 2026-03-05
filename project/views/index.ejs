@@ -1,126 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- ... head content same as before ... -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clothing Store Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/custom.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    }
+    .dashboard-title {
+      font-weight: 700;
+      color: #2d3748;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .card {
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      transition: box-shadow 0.2s;
+    }
+    .card:hover {
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .card-title {
+      font-weight: 600;
+      color: #2563eb;
+    }
+    .btn-primary {
+      background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+      border: none;
+    }
+    .btn-success {
+      background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
+      border: none;
+      color: #065f46;
+    }
+    .btn-warning {
+      background: linear-gradient(90deg, #f59e42 0%, #fef08a 100%);
+      border: none;
+      color: #92400e;
+    }
+  </style>
 </head>
 <body>
-  <!-- Navigation Bar (same) -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-    <!-- ... -->
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 fade-in">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
+          <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
+          <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+        </ul>
+      </div>
+    </div>
   </nav>
-
-  <div class="container mt-4">
-    <h1 class="dashboard-title"><i class="fa-solid fa-boxes-stacked me-2"></i>Products Dashboard</h1>
-
-    <!-- NEW: Totals Card -->
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <div class="card text-center">
-          <div class="card-body">
-            <h5 class="card-title">Total Cost Price of All Products</h5>
-            <p class="display-6 text-warning" id="totalCostPrice">₹0.00</p>
+  
+  <div class="container fade-in">
+    <div class="hero-banner mb-5">
+      <h1><i class="fa-solid fa-shirt me-2"></i>Clothing Store Management</h1>
+      <a href="/products" class="btn btn-primary btn-lg me-2"><i class="fa-solid fa-list me-1"></i> Products</a>
+      <a href="/scan" class="btn btn-success btn-lg"><i class="fa-solid fa-qrcode me-1"></i> Scan</a>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-md-4 mb-4">
+        <div class="card fade-in">
+          <div class="card-body text-center">
+            <span class="badge bg-primary mb-2"><i class="fa-solid fa-box"></i> Products</span>
+            <h5 class="card-title">Manage Products</h5>
+            <a href="/products" class="btn btn-primary w-100"><i class="fa-solid fa-list me-1"></i> Go to Products</a>
           </div>
         </div>
       </div>
-      <div class="col-md-6">
-        <div class="card text-center">
-          <div class="card-body">
-            <h5 class="card-title">Total Selling Price of All Products</h5>
-            <p class="display-6 text-info" id="totalSellingPrice">₹0.00</p>
+      <div class="col-md-4 mb-4">
+        <div class="card fade-in">
+          <div class="card-body text-center">
+            <span class="badge bg-success mb-2"><i class="fa-solid fa-barcode"></i> Scan</span>
+            <h5 class="card-title">Scan QR Code</h5>
+            <a href="/scan" class="btn btn-success w-100"><i class="fa-solid fa-qrcode me-1"></i> Open Scanner</a>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <!-- ... buttons ... -->
+    <div class="alert alert-info fade-in mt-4" role="alert">
+      <i class="fa-solid fa-circle-info me-2"></i>Tip: Use your mobile device for the fastest QR scanning experience!
     </div>
-
-    <!-- Add Product Modal (unchanged) -->
-    <div class="modal fade" id="addProductModal" ...>...</div>
-
-    <form id="bulk-delete-form" ...>...</form>
   </div>
-
-  <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // (All existing JavaScript remains, but we add calculation of totals)
-
-    // Modify the fetchProducts function to also update totals
-    async function fetchProducts() {
-      try {
-        const response = await fetch('/api/products?_=' + Date.now());
-        if (!response.ok) throw new Error('Failed to fetch');
-        const products = await response.json();
-
-        const selectedIds = new Set(getSelectedProductIds());
-        const tbody = document.getElementById('products-table-body');
-
-        // Calculate totals
-        let totalCost = 0, totalSelling = 0;
-        products.forEach(product => {
-          const costPrice = parseFloat(product.cost_price) || 0;
-          const sellingPrice = parseFloat(product.selling_price) || 0;
-          // Sum over all variants (stock)
-          if (product.variants && product.variants.length > 0) {
-            product.variants.forEach(variant => {
-              const stock = parseInt(variant.stock) || 0;
-              totalCost += costPrice * stock;
-              totalSelling += sellingPrice * stock;
-            });
-          }
-        });
-
-        document.getElementById('totalCostPrice').innerText = `₹${totalCost.toFixed(2)}`;
-        document.getElementById('totalSellingPrice').innerText = `₹${totalSelling.toFixed(2)}`;
-
-        // ... rest of existing fetchProducts code (populate table, etc.)
-        if (products.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="13" class="text-center">No products found.</td></tr>';
-        } else {
-          tbody.innerHTML = products.map(product => `
-            <tr>
-              <td><input type="checkbox" class="product-checkbox" name="productIds[]" value="${product.id}" ${selectedIds.has(product.id) ? 'checked' : ''}></td>
-              <td>${product.product_code}</td>
-              <td>${product.category}</td>
-              <td>${product.name}</td>
-              <td>${product.supplier}</td>
-              <td>
-                ${product.variants && product.variants.length > 0
-                  ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
-                  : '<span class="text-muted">—</span>'}
-              </td>
-              <td>₹${product.cost_price}</td>
-              <td>${product.margin_percent}%</td>
-              <td>${product.margin_rs}</td>
-              <td>₹${product.selling_price}</td>
-              <td>
-                <a href="/products/${product.id}">
-                  <img src="/api/qr/${product.qr_code}" alt="QR" style="width: 50px; height: 50px;">
-                </a>
-              </td>
-              <td>
-                <a href="/products/${product.id}" class="btn btn-sm btn-info">View</a>
-                <a href="/products/edit/${product.id}" class="btn btn-sm btn-warning">Edit</a>
-                <form method="POST" action="/products/delete/${product.id}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this product? This action cannot be undone.');">
-                  <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                </form>
-              </td>
-            </tr>
-          `).join('');
-        }
-
-        updateBulkDeleteBtn();
-        updateSelectAllCheckbox();
-        document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
-      } catch (error) {
-        console.error(error);
-        document.getElementById('products-table-body').innerHTML = '<tr><td colspan="13" class="text-center text-danger">Error loading products</td></tr>';
-      }
-    }
-
-    // All other functions remain unchanged...
-  </script>
 </body>
 </html>

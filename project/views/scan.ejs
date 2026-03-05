@@ -139,7 +139,6 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Check library loaded
       if (typeof Html5Qrcode === 'undefined') {
         document.getElementById('qr-reader-results').innerHTML = 
           '<div class="alert alert-danger">QR scanner library failed to load. Please refresh.</div>';
@@ -184,7 +183,7 @@
             totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
             stockBySize = product.variants.map(v => `${v.size}: ${v.stock}`).join(', ');
           }
-          // ***** UPDATED: Added Edit Product button *****
+          // Build product info with delete button
           let html = `<div class="mb-2 p-2 border rounded">
             <strong>${product.name}</strong><br>
             <span><b>Code:</b> ${product.product_code}</span><br>
@@ -194,8 +193,41 @@
             <span><b>Stock by Size:</b> ${stockBySize || '-'}</span><br>
             <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary mt-2">View More Details</a>
             <a href="/products/edit/${product.id}" class="btn btn-sm btn-warning mt-2">Edit Product</a>
+            <button class="btn btn-sm btn-danger mt-2 delete-scanned-product">Delete Product</button>
           </div>`;
           productInfoDiv.innerHTML = html;
+
+          // Attach delete handler
+          productInfoDiv.querySelector('.delete-scanned-product').addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+              fetch(`/products/delete/${product.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+              })
+              .then(response => {
+                if (response.ok) {
+                  alert('Product deleted successfully');
+                  // Clear display and restart scanner
+                  resultDiv.innerText = '—';
+                  productInfoDiv.innerHTML = '<p class="text-muted">Scan a QR code to see product details.</p>';
+                  lastScannedId = null;
+                  scanLocked = false;
+                  if (scannerSection) {
+                    scannerSection.style.display = '';
+                  }
+                  // Optionally restart scanner
+                  startScanner();
+                } else {
+                  alert('Error deleting product');
+                }
+              })
+              .catch(err => {
+                console.error(err);
+                alert('Network error');
+              });
+            }
+          });
+
           resultsDiv.innerHTML = '<div class="alert alert-success">Product loaded</div>';
           if (scannerSection) {
             scannerSection.style.display = 'none';

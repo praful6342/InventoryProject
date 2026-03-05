@@ -44,7 +44,6 @@ router.post('/add', (req, res) => {
       }
       const productId = this.lastID;
 
-      // Handle sizes (may be array or object)
       let sizeEntries = [];
       if (Array.isArray(sizes)) {
         sizeEntries = sizes;
@@ -148,14 +147,12 @@ router.post('/update/:id', (req, res) => {
         return res.status(500).send('Error updating product');
       }
 
-      // Delete old variants
       db.run('DELETE FROM product_variants WHERE product_id = ?', [id], function(err2) {
         if (err2) {
           console.error('Error deleting old variants:', err2);
           return res.status(500).send('Error updating variants');
         }
 
-        // Insert new variants
         let sizeEntries = [];
         if (Array.isArray(sizes)) {
           sizeEntries = sizes;
@@ -192,69 +189,40 @@ router.post('/update/:id', (req, res) => {
   );
 });
 
-// Delete product (with cleanup of related records)
+// Delete product (with cleanup) – supports both form POST and JSON fetch
 router.post('/delete/:id', (req, res) => {
   const id = req.params.id;
+  const isJson = req.xhr || (req.headers.accept && req.headers.accept.includes('json'));
 
   db.run('DELETE FROM sale_items WHERE product_id = ?', [id], function(err) {
     if (err) {
       console.error('Error deleting sale_items:', err);
-      return res.status(500).send('Error deleting sale items');
+      return isJson ? res.status(500).json({ error: 'Error deleting sale items' }) : res.status(500).send('Error deleting sale items');
     }
 
-    // Delete orphaned sales (no sale_items left)
     db.run('DELETE FROM sales WHERE id IN (SELECT s.id FROM sales s LEFT JOIN sale_items si ON s.id = si.sale_id WHERE si.id IS NULL)', [], function(err) {
       if (err) {
         console.error('Error cleaning up sales:', err);
-        return res.status(500).send('Error cleaning up sales');
+        return isJson ? res.status(500).json({ error: 'Error cleaning up sales' }) : res.status(500).send('Error cleaning up sales');
       }
 
       db.run('DELETE FROM products WHERE id = ?', [id], function(err) {
         if (err) {
           console.error('Error deleting product:', err);
-          return res.status(500).send('Error deleting product');
+          return isJson ? res.status(500).json({ error: 'Error deleting product' }) : res.status(500).send('Error deleting product');
         }
-        res.redirect('/products');
+
+        // Emit real‑time update
+        if (req.app.locals.socketApi) {
+          req.app.locals.socketApi.emitProductUpdate();
+        }
+
+        if (isJson) {
+          res.json({ success: true });
+        } else {
+          res.redirect('/products');
+        }
       });
-    });
-  });
-});
-
-// Bulk delete products (with real‑time update)
-router.post('/bulk-delete', (req, res) => {
-  let ids = req.body.productIds;
-  if (!ids) return res.redirect('/products');
-  if (!Array.isArray(ids)) ids = [ids];
-
-  const placeholders = ids.map(() => '?').join(',');
-
-  db.serialize(() => {
-    db.run(`DELETE FROM sale_items WHERE product_id IN (${placeholders})`, ids, function(err) {
-      if (err) {
-        console.error('Error deleting sale_items:', err);
-        return res.status(500).send('Error deleting sale items');
-      }
-    });
-
-    db.run(`DELETE FROM product_variants WHERE product_id IN (${placeholders})`, ids, function(err2) {
-      if (err2) {
-        console.error('Error deleting variants:', err2);
-        return res.status(500).send('Error deleting variants');
-      }
-    });
-
-    db.run(`DELETE FROM products WHERE id IN (${placeholders})`, ids, function(err3) {
-      if (err3) {
-        console.error('Error deleting products:', err3);
-        return res.status(500).send('Error deleting products');
-      }
-
-      // Emit real‑time update
-      if (req.app.locals.socketApi) {
-        req.app.locals.socketApi.emitProductUpdate();
-      }
-
-      res.redirect('/products');
     });
   });
 });
