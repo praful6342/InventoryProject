@@ -7,11 +7,16 @@
     "start": "node project/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["inventory", "qr", "clothing"],
+  "keywords": [
+    "inventory",
+    "qr",
+    "clothing"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "csv-parser": "^3.2.0",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",

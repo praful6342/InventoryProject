@@ -3,71 +3,352 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Label - <%= product.name %></title>
+  <title>Product Code Label</title>
   <style>
-    /* Print‑optimized styles */
-    body {
-      font-family: Arial, sans-serif;
+    * {
       margin: 0;
-      padding: 10px;
-      width: 300px; /* typical label width */
-      height: auto;
+      padding: 0;
       box-sizing: border-box;
     }
-    .label {
-      text-align: center;
-      border: 1px solid #ccc;
-      padding: 10px;
+    
+    body {
+      font-family: 'Arial', 'Helvetica', sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    h1 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+    
+    .preview-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      max-width: 800px;
+      margin: 0 auto 100px;
+      align-items: center;
+    }
+    
+    .label-preview {
+      width: 400px;
+      min-height: 200px;
+      padding: 20px;
+      background: white;
+      border: 2px solid #2563eb;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 20px;
+    }
+    
+    .qr-section {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .qr-image {
+      width: 120px;
+      height: 120px;
+      border: 1px solid #e2e8f0;
+      padding: 5px;
       border-radius: 8px;
       background: white;
     }
-    .product-name {
-      font-size: 14px;
-      font-weight: bold;
-      margin: 5px 0;
-      word-wrap: break-word;
-    }
-    .product-code {
-      font-size: 12px;
-      color: #555;
-      margin: 2px 0;
-    }
-    .price {
-      font-size: 13px;
-      font-weight: bold;
-      color: #2563eb;
-      margin: 5px 0;
-    }
-    .qr-image {
-      width: 150px;
-      height: 150px;
-      margin: 5px auto;
-    }
+    
     .qr-image img {
       width: 100%;
       height: 100%;
+      object-fit: contain;
     }
-    @media print {
-      body { margin: 0; padding: 0; }
-      .label { border: none; }
+    
+    .qr-label {
+      font-size: 10px;
+      color: #64748b;
+      text-align: center;
+    }
+    
+    .code-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .product-code {
+      font-size: 16px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      color: #1e293b;
+      word-break: break-all;
+      background: #f8fafc;
+      padding: 10px;
+      border-radius: 6px;
+      border-left: 4px solid #2563eb;
+    }
+    
+    .product-code-label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .download-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      background: white;
+      padding: 20px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      border-top: 2px solid #2563eb;
+      flex-wrap: wrap;
+    }
+    
+    .download-controls input {
+      width: 100px;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      text-align: center;
+    }
+    
+    .download-controls button {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .btn-download {
+      background: #2563eb;
+      color: white;
+    }
+    
+    .btn-download:hover {
+      background: #1e4fbd;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+    }
+    
+    .btn-cancel {
+      background: #f1f5f9;
+      color: #475569;
+    }
+    
+    .btn-cancel:hover {
+      background: #e2e8f0;
+    }
+    
+    /* Canvas is hidden - used only for image generation */
+    #labelCanvas {
+      display: none;
+    }
+    
+    @media (max-width: 768px) {
+      .label-preview {
+        width: 100%;
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .code-section {
+        width: 100%;
+      }
+      
+      .download-controls {
+        flex-direction: column;
+        padding: 15px;
+      }
+      
+      .download-controls button {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
+  
+  <!-- Include html2canvas for image generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
-  <div class="label">
-    <div class="product-name"><%= product.name %></div>
-    <div class="product-code"><%= product.product_code %></div>
-    <div class="price">₹<%= product.selling_price %></div>
-    <div class="qr-image">
-      <img src="<%= qrCodeUrl %>" alt="QR Code">
+  <h1>📦 Product Label Preview</h1>
+  
+  <div class="preview-container">
+    <div id="labelPreview" class="label-preview">
+      <div class="qr-section">
+        <div class="qr-image">
+          <img id="qrImg" src="" alt="QR Code">
+        </div>
+        <div class="qr-label">SCAN QR CODE</div>
+      </div>
+      <div class="code-section">
+        <div class="product-code-label">PRODUCT CODE</div>
+        <div id="productCodeDisplay" class="product-code"></div>
+      </div>
     </div>
-    <div style="font-size:10px; color:#999;"><%= product.qr_code %></div>
+    <p style="color: #666; margin-top: 10px;">Preview of your label</p>
   </div>
+  
+  <div class="download-controls">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <label for="copyCount" style="font-weight: bold;">Number of copies:</label>
+      <input type="number" id="copyCount" min="1" max="50" value="1">
+    </div>
+    <button class="btn-download" onclick="downloadAsImage()">
+      ⬇️ Download as Image
+    </button>
+    <button class="btn-cancel" onclick="window.close()">
+      ✕ Close
+    </button>
+  </div>
+
+  <!-- Hidden canvas for image generation -->
+  <canvas id="labelCanvas"></canvas>
+
   <script>
-    // Automatically trigger print dialog when page loads
-    window.onload = function() {
-      window.print();
-    };
+    const product = <%- JSON.stringify(product) %>;
+    const qrCodeUrl = "<%= qrCodeUrl %>";
+    const productCode = product.product_code;
+    
+    // Set the preview
+    document.getElementById('qrImg').src = qrCodeUrl;
+    document.getElementById('productCodeDisplay').textContent = productCode;
+    
+    // Function to create a label element (for image generation)
+    function createLabelElement() {
+      const div = document.createElement('div');
+      div.className = 'label-preview';
+      div.style.width = '400px';
+      div.style.padding = '20px';
+      div.style.background = 'white';
+      div.style.border = '2px solid #2563eb';
+      div.style.borderRadius = '8px';
+      div.style.display = 'flex';
+      div.style.flexDirection = 'row';
+      div.style.alignItems = 'center';
+      div.style.gap = '20px';
+      
+      div.innerHTML = `
+        <div class="qr-section" style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+          <div style="width: 120px; height: 120px; border: 1px solid #e2e8f0; padding: 5px; border-radius: 8px; background: white;">
+            <img src="${qrCodeUrl}" style="width: 100%; height: 100%; object-fit: contain;">
+          </div>
+          <div style="font-size: 10px; color: #64748b;">SCAN QR CODE</div>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">PRODUCT CODE</div>
+          <div style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace; color: #1e293b; word-break: break-all; background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 4px solid #2563eb;">
+            ${productCode}
+          </div>
+        </div>
+      `;
+      
+      return div;
+    }
+    
+    // Function to download a single label as image
+    async function downloadSingleLabel() {
+      const labelElement = createLabelElement();
+      document.body.appendChild(labelElement);
+      
+      try {
+        const canvas = await html2canvas(labelElement, {
+          scale: 2, // Higher resolution
+          backgroundColor: 'white',
+          allowTaint: false,
+          useCORS: true
+        });
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.download = `label_${productCode}_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error('Error generating image:', error);
+        alert('Failed to generate image. Please try again.');
+      } finally {
+        // Remove the temporary element
+        document.body.removeChild(labelElement);
+      }
+    }
+    
+    // Function to download multiple labels as a single image (arranged vertically)
+    async function downloadMultipleLabels(count) {
+      const container = document.createElement('div');
+      container.style.display = 'flex';
+      container.style.flexDirection = 'column';
+      container.style.gap = '20px';
+      container.style.background = 'white';
+      container.style.padding = '20px';
+      
+      for (let i = 0; i < count; i++) {
+        container.appendChild(createLabelElement());
+      }
+      
+      document.body.appendChild(container);
+      
+      try {
+        const canvas = await html2canvas(container, {
+          scale: 2,
+          backgroundColor: 'white',
+          allowTaint: false,
+          useCORS: true
+        });
+        
+        const link = document.createElement('a');
+        link.download = `labels_${count}_copies_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error('Error generating image:', error);
+        alert('Failed to generate image. Please try again.');
+      } finally {
+        document.body.removeChild(container);
+      }
+    }
+    
+    // Main download function
+    function downloadAsImage() {
+      const count = parseInt(document.getElementById('copyCount').value) || 1;
+      
+      if (count === 1) {
+        downloadSingleLabel();
+      } else if (count > 1) {
+        downloadMultipleLabels(count);
+      }
+    }
+    
+    // Enter key support
+    document.getElementById('copyCount').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        downloadAsImage();
+      }
+    });
   </script>
 </body>
 </html>
