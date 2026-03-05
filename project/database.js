@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname, '..', 'data', 'database.db');
+const dbPath = path.join(__dirname, 'data', 'database.db');
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -13,7 +13,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // Initialize tables
 db.serialize(() => {
-  // Products table (no size/stock columns)
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +30,6 @@ db.serialize(() => {
     if (err) console.error('Error creating products table:', err);
   });
 
-  // Product variants table (size-wise stock)
   db.run(`
     CREATE TABLE IF NOT EXISTS product_variants (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +42,6 @@ db.serialize(() => {
     if (err) console.error('Error creating product_variants table:', err);
   });
 
-  // Customers table
   db.run(`
     CREATE TABLE IF NOT EXISTS customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +53,6 @@ db.serialize(() => {
     if (err) console.error('Error creating customers table:', err);
   });
 
-  // Sales table
   db.run(`
     CREATE TABLE IF NOT EXISTS sales (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +67,6 @@ db.serialize(() => {
     if (err) console.error('Error creating sales table:', err);
   });
 
-  // Sale items table
   db.run(`
     CREATE TABLE IF NOT EXISTS sale_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

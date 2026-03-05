@@ -88,7 +88,7 @@
   </style>
 </head>
 <body>
-  <!-- Navigation Bar -->
+  <!-- Navigation Bar (updated) -->
   <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
     <div class="container-fluid">
       <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
@@ -100,11 +100,12 @@
           <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
           <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
-          <li class="nav-item"><a class="nav-link disabled" href="#">Reports</a></li>
+          <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
         </ul>
       </div>
     </div>
   </nav>
+
   <div class="container mt-5">
     <h1 class="scanner-title mb-4"><i class="fa-solid fa-qrcode me-2"></i>QR Code Scanner</h1>
     <div class="row">
@@ -155,52 +156,60 @@
       const clearBtn = document.getElementById('clearBtn');
 
       let html5QrCode = new Html5Qrcode(qrReaderElement.id);
+      
+      // Configuration for the scanner
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      };
+
       let isScanning = false;
-      let lastScannedId = null; // Store the last scanned product ID
+      let lastScannedId = null;
       const scannerSection = document.getElementById('scanner-section');
+      
       // Function to fetch and display product details from backend
-        function fetchScannedProductAndDisplay() {
-          fetch('/scan/scan-product', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_code: lastScannedId })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (!data.product) {
-              productInfoDiv.innerHTML = '<p class="text-danger">Product not found.</p>';
-              return;
-            }
-            const product = data.product;
-            let totalStock = 0;
-            let stockBySize = '';
-            if (product.variants && product.variants.length > 0) {
-              totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-              stockBySize = product.variants.map(v => `${v.size}: ${v.stock}`).join(', ');
-            }
-            let html = `<div class="mb-2 p-2 border rounded">
-              <strong>${product.name}</strong><br>
-              <span><b>Code:</b> ${product.product_code}</span><br>
-              <span><b>Category:</b> ${product.category || '-'}</span><br>
-              <span><b>Selling Price:</b> ₹${product.selling_price}</span><br>
-              <span><b>Current Stock:</b> ${totalStock}</span><br>
-              <span><b>Stock by Size:</b> ${stockBySize || '-'}</span><br>
-              <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary mt-2">View More Details</a>
-            </div>`;
-            productInfoDiv.innerHTML = html;
-            resultsDiv.innerHTML = '<div class="alert alert-success">Product loaded</div>';
-            // Hide scanner section after successful scan
-            if (scannerSection) {
-              scannerSection.style.display = 'none';
-            }
-          })
-          .catch(error => {
-            console.error(error);
-            resultsDiv.innerHTML = '<div class="alert alert-danger">Error fetching product</div>';
-            productInfoDiv.innerHTML = '<p class="text-danger">Error fetching product</p>';
-          });
-        }
-      // Function to start scanning
+      function fetchScannedProductAndDisplay() {
+        fetch('/scan/scan-product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_code: lastScannedId })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.product) {
+            productInfoDiv.innerHTML = '<p class="text-danger">Product not found.</p>';
+            return;
+          }
+          const product = data.product;
+          let totalStock = 0;
+          let stockBySize = '';
+          if (product.variants && product.variants.length > 0) {
+            totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+            stockBySize = product.variants.map(v => `${v.size}: ${v.stock}`).join(', ');
+          }
+          let html = `<div class="mb-2 p-2 border rounded">
+            <strong>${product.name}</strong><br>
+            <span><b>Code:</b> ${product.product_code}</span><br>
+            <span><b>Category:</b> ${product.category || '-'}</span><br>
+            <span><b>Selling Price:</b> ₹${product.selling_price}</span><br>
+            <span><b>Current Stock:</b> ${totalStock}</span><br>
+            <span><b>Stock by Size:</b> ${stockBySize || '-'}</span><br>
+            <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary mt-2">View More Details</a>
+          </div>`;
+          productInfoDiv.innerHTML = html;
+          resultsDiv.innerHTML = '<div class="alert alert-success">Product loaded</div>';
+          // Hide scanner section after successful scan
+          if (scannerSection) {
+            scannerSection.style.display = 'none';
+          }
+        })
+        .catch(error => {
+          console.error(error);
+          resultsDiv.innerHTML = '<div class="alert alert-danger">Error fetching product</div>';
+          productInfoDiv.innerHTML = '<p class="text-danger">Error fetching product</p>';
+        });
+      }
+
       // Debounce flag for scan
       let scanLocked = false;
 
@@ -216,7 +225,7 @@
             scanLocked = true;
             // Success callback
             resultDiv.innerText = decodedText;
-            lastScannedId = decodedText; // Store the scanned ID
+            lastScannedId = decodedText;
             fetchScannedProductAndDisplay();
             // Stop scanner after one scan
             stopScanner();
@@ -263,14 +272,11 @@
       // Event listeners
       document.getElementById('scanBtn').addEventListener('click', function() {
         scanLocked = false;
-        // Clear previous errors
         resultsDiv.innerHTML = '';
-        // Check if camera permissions are available
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           resultsDiv.innerHTML = '<div class="alert alert-danger">Camera API not supported in this browser.</div>';
           return;
         }
-        // Try to start the scanner
         try {
           startScanner();
         } catch (err) {
@@ -281,7 +287,7 @@
       stopBtn.addEventListener('click', stopScanner);
 
       startBtn.addEventListener('click', function() {
-        scanLocked = false; // Allow next scan
+        scanLocked = false;
         startScanner();
       });
 
@@ -290,15 +296,19 @@
         productInfoDiv.innerHTML = '<p class="text-muted">Scan a QR code to see product details.</p>';
         resultsDiv.innerHTML = '';
         lastScannedId = null;
-        scanLocked = false; // Unlock scan on clear
-        // Show scanner section again
+        scanLocked = false;
         if (scannerSection) {
           scannerSection.style.display = '';
         }
       });
+
+      // *** NEW: Automatically start scanner when page loads ***
+      // Slight delay to ensure everything is ready
+      setTimeout(() => {
+        document.getElementById('scanBtn').click();
+      }, 500);
     });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </html>

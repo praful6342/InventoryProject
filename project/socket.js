@@ -7,7 +7,6 @@ function setupSocket(server) {
     // You can log or handle connections here
   });
 
-  // Expose a function to emit product updates
   return {
     emitProductUpdate: () => io.emit('products-updated')
   };
