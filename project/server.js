@@ -9,7 +9,6 @@ const fs = require('fs');         // to read certificate files
 const scanRoutes = require('./routes/scan');
 const productRoutes = require('./routes/products');
 const apiRoutes = require('./routes/api');
-const sellRoutes = require('./routes/sell');
 const billRoutes = require('./routes/bill');
 const dashboardRoutes = require('./routes/dashboard');
 
@@ -39,7 +38,6 @@ app.set('views', path.join(__dirname, 'views'));
 app.use('/products', productRoutes);
 app.use('/scan', scanRoutes);
 app.use('/api', apiRoutes);
-app.use('/sell', sellRoutes);
 app.use('/bill', billRoutes);
 app.use('/dashboard', dashboardRoutes);
 
