@@ -19,7 +19,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-// Initialize tables (unchanged) ...
+// Initialize tables
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS products (

@@ -3,9 +3,9 @@ const router = express.Router();
 const db = require('../database');
 const QRCode = require('qrcode');
 
-// Helper to generate product code
-function generateProductCode(category, name, supplier, sellingPrice) {
-  return `${category}_${name}_${supplier}_${sellingPrice}`
+// Helper: generate product code from category, name, supplier (price excluded)
+function generateProductCode(category, name, supplier) {
+  return `${category}_${name}_${supplier}`
     .replace(/\s+/g, '')
     .toUpperCase();
 }
@@ -39,11 +39,11 @@ router.post('/add', (req, res) => {
     sizes
   } = req.body;
 
-  const productCode = generateProductCode(category, name, supplier, selling_price);
+  const productCode = generateProductCode(category, name, supplier);
 
   db.run(
-    `INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, productCode],
+    `INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price],
     function(err) {
       if (err) {
         console.error(err);
@@ -51,6 +51,12 @@ router.post('/add', (req, res) => {
       }
       const productId = this.lastID;
 
+      // Set permanent QR code based on product ID
+      db.run('UPDATE products SET qr_code = ? WHERE id = ?', [`pid:${productId}`, productId], (err) => {
+        if (err) console.error('Error setting qr_code:', err);
+      });
+
+      // Handle variants
       let sizeEntries = [];
       if (Array.isArray(sizes)) {
         sizeEntries = sizes;
@@ -129,7 +135,7 @@ router.get('/edit/:id', (req, res) => {
   });
 });
 
-// Update product
+// Update product (price, margin, stock, etc.) – QR code remains unchanged
 router.post('/update/:id', (req, res) => {
   const id = req.params.id;
   const {
@@ -143,23 +149,26 @@ router.post('/update/:id', (req, res) => {
     sizes
   } = req.body;
 
-  const productCode = generateProductCode(category, name, supplier, selling_price);
+  // Recalculate product code (category/name/supplier might have changed)
+  const productCode = generateProductCode(category, name, supplier);
 
   db.run(
-    `UPDATE products SET product_code = ?, category = ?, name = ?, supplier = ?, cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ?, qr_code = ? WHERE id = ?`,
-    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, productCode, id],
+    `UPDATE products SET product_code = ?, category = ?, name = ?, supplier = ?, cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ? WHERE id = ?`,
+    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, id],
     function(err) {
       if (err) {
         console.error(err);
         return res.status(500).send('Error updating product');
       }
 
+      // Delete old variants
       db.run('DELETE FROM product_variants WHERE product_id = ?', [id], function(err2) {
         if (err2) {
           console.error('Error deleting old variants:', err2);
           return res.status(500).send('Error updating variants');
         }
 
+        // Insert new variants
         let sizeEntries = [];
         if (Array.isArray(sizes)) {
           sizeEntries = sizes;
@@ -194,6 +203,27 @@ router.post('/update/:id', (req, res) => {
       });
     }
   );
+});
+
+// Print label for a product
+router.get('/label/:id', (req, res) => {
+  const id = req.params.id;
+  db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Database error');
+    }
+    if (!product) {
+      return res.status(404).send('Product not found');
+    }
+    QRCode.toDataURL(product.qr_code, (err, url) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('QR generation error');
+      }
+      res.render('label', { product, qrCodeUrl: url });
+    });
+  });
 });
 
 // Delete product (with cleanup) – supports both form POST and JSON fetch

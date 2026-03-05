@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Label - <%= product.name %></title>
+  <style>
+    /* Print‑optimized styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      width: 300px; /* typical label width */
+      height: auto;
+      box-sizing: border-box;
+    }
+    .label {
+      text-align: center;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+      background: white;
+    }
+    .product-name {
+      font-size: 14px;
+      font-weight: bold;
+      margin: 5px 0;
+      word-wrap: break-word;
+    }
+    .product-code {
+      font-size: 12px;
+      color: #555;
+      margin: 2px 0;
+    }
+    .price {
+      font-size: 13px;
+      font-weight: bold;
+      color: #2563eb;
+      margin: 5px 0;
+    }
+    .qr-image {
+      width: 150px;
+      height: 150px;
+      margin: 5px auto;
+    }
+    .qr-image img {
+      width: 100%;
+      height: 100%;
+    }
+    @media print {
+      body { margin: 0; padding: 0; }
+      .label { border: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="product-name"><%= product.name %></div>
+    <div class="product-code"><%= product.product_code %></div>
+    <div class="price">₹<%= product.selling_price %></div>
+    <div class="qr-image">
+      <img src="<%= qrCodeUrl %>" alt="QR Code">
+    </div>
+    <div style="font-size:10px; color:#999;"><%= product.qr_code %></div>
+  </div>
+  <script>
+    // Automatically trigger print dialog when page loads
+    window.onload = function() {
+      window.print();
+    };
+  </script>
+</body>
+</html>
