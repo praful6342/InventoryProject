@@ -115,8 +115,9 @@
           <div id="qr-reader-results" class="mt-3"></div>
           <!-- Scanner control buttons -->
           <div class="scanner-controls d-flex gap-2">
+            <button id="scanBtn" class="btn btn-primary">Scan</button>
             <button id="stopBtn" class="btn btn-danger">Stop Scanning</button>
-            <button id="startBtn" class="btn btn-success" disabled>Scan Next</button>
+            <button id="startBtn" class="btn btn-success">Scan Next</button>
           </div>
         </div>
       </div>
@@ -158,57 +159,56 @@
       let lastScannedId = null; // Store the last scanned product ID
       const scannerSection = document.getElementById('scanner-section');
 
-      const config = { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 } 
-      };
-
-
-      // Function to fetch and display the scanned cart from backend
-      function fetchScannedCartAndDisplay() {
-        fetch('/scan/scan-product', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product_code: lastScannedId })
-        })
-        .then(response => response.json())
-        .then(async data => {
-          if (!data.cart) {
-            productInfoDiv.innerHTML = '<p class="text-danger">No cart data</p>';
-            return;
-          }
-          // Fetch product details for each product_code in cart
-          const cartEntries = Object.entries(data.cart);
-          let html = '';
-          for (const [code, item] of cartEntries) {
-            // Fetch product details from API
-            try {
-              const resp = await fetch(`/api/products/${code}`);
-              if (!resp.ok) throw new Error('Not found');
-              const product = await resp.json();
-              html += `<div class="mb-2 p-2 border rounded">
-                <strong>${product.name}</strong> (Code: ${code})<br>
-                <span>Quantity: <span class="badge bg-primary">${item.quantity}</span></span><br>
-                <span>Price: ₹${product.selling_price}</span>
-              </div>`;
-            } catch (e) {
-              html += `<div class="mb-2 p-2 border rounded bg-warning-subtle">Unknown product (Code: ${code})<br>Quantity: ${item.quantity}</div>`;
-            }
-          }
-          productInfoDiv.innerHTML = html || '<p class="text-muted">No products scanned yet.</p>';
-          resultsDiv.innerHTML = '<div class="alert alert-success">Cart updated</div>';
-          // Hide scanner section after successful scan
-          if (scannerSection) {
-            scannerSection.style.display = 'none';
-          }
-        })
         .catch(error => {
           console.error(error);
           resultsDiv.innerHTML = '<div class="alert alert-danger">Error updating cart</div>';
           productInfoDiv.innerHTML = '<p class="text-danger">Error updating cart</p>';
         });
       }
-
+        }
+      
+        // Function to fetch and display product details from backend
+        function fetchScannedProductAndDisplay() {
+          fetch('/scan/scan-product', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_code: lastScannedId })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (!data.product) {
+              productInfoDiv.innerHTML = '<p class="text-danger">Product not found.</p>';
+              return;
+            }
+            const product = data.product;
+            let totalStock = 0;
+            let stockBySize = '';
+            if (product.variants && product.variants.length > 0) {
+              totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+              stockBySize = product.variants.map(v => `${v.size}: ${v.stock}`).join(', ');
+            }
+            let html = `<div class="mb-2 p-2 border rounded">
+              <strong>${product.name}</strong><br>
+              <span><b>Code:</b> ${product.product_code}</span><br>
+              <span><b>Category:</b> ${product.category || '-'}</span><br>
+              <span><b>Selling Price:</b> ₹${product.selling_price}</span><br>
+              <span><b>Current Stock:</b> ${totalStock}</span><br>
+              <span><b>Stock by Size:</b> ${stockBySize || '-'}</span><br>
+              <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary mt-2">View More Details</a>
+            </div>`;
+            productInfoDiv.innerHTML = html;
+            resultsDiv.innerHTML = '<div class="alert alert-success">Product loaded</div>';
+            // Hide scanner section after successful scan
+            if (scannerSection) {
+              scannerSection.style.display = 'none';
+            }
+          })
+          .catch(error => {
+            console.error(error);
+            resultsDiv.innerHTML = '<div class="alert alert-danger">Error fetching product</div>';
+            productInfoDiv.innerHTML = '<p class="text-danger">Error fetching product</p>';
+          });
+        }
       // Function to start scanning
       // Debounce flag for scan
       let scanLocked = false;
@@ -226,7 +226,7 @@
             // Success callback
             resultDiv.innerText = decodedText;
             lastScannedId = decodedText; // Store the scanned ID
-            fetchScannedCartAndDisplay();
+            fetchScannedProductAndDisplay();
             // Stop scanner after one scan
             stopScanner();
           },
@@ -261,17 +261,17 @@
         }
       }
 
-      // Initially start scanning
-      startScanner();
-
       // Event listeners
+      document.getElementById('scanBtn').addEventListener('click', function() {
+        scanLocked = false;
+        startScanner();
+      });
+
       stopBtn.addEventListener('click', stopScanner);
 
       startBtn.addEventListener('click', function() {
-        if (!isScanning) {
-          scanLocked = false; // Allow next scan
-          startScanner();
-        }
+        scanLocked = false; // Allow next scan
+        startScanner();
       });
 
       clearBtn.addEventListener('click', function() {
@@ -284,7 +284,6 @@
         if (scannerSection) {
           scannerSection.style.display = '';
         }
-        // Optionally, clear the cart in backend (not implemented here)
       });
     });
   </script>
