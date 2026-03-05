@@ -240,7 +240,15 @@
           resultsDiv.innerHTML = '<div class="alert alert-info">Scanner running</div>';
         }).catch(err => {
           console.error("Start failed:", err);
-          resultsDiv.innerHTML = '<div class="alert alert-danger">Failed to start camera. Check permissions.</div>';
+          let msg = 'Failed to start camera. ';
+          if (err && err.name === 'NotAllowedError') {
+            msg += 'Camera access was denied. Please allow camera permissions.';
+          } else if (err && err.name === 'NotFoundError') {
+            msg += 'No camera device found.';
+          } else {
+            msg += 'Error: ' + (err.message || err);
+          }
+          resultsDiv.innerHTML = '<div class="alert alert-danger">' + msg + '</div>';
           stopBtn.disabled = true;
           startBtn.disabled = false;
         });
@@ -264,7 +272,19 @@
       // Event listeners
       document.getElementById('scanBtn').addEventListener('click', function() {
         scanLocked = false;
-        startScanner();
+        // Clear previous errors
+        resultsDiv.innerHTML = '';
+        // Check if camera permissions are available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          resultsDiv.innerHTML = '<div class="alert alert-danger">Camera API not supported in this browser.</div>';
+          return;
+        }
+        // Try to start the scanner
+        try {
+          startScanner();
+        } catch (err) {
+          resultsDiv.innerHTML = '<div class="alert alert-danger">Error starting scanner: ' + err.message + '</div>';
+        }
       });
 
       stopBtn.addEventListener('click', stopScanner);
