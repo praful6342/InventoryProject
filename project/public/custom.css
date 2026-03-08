@@ -1,3 +1,188 @@
+/* --- Further UI/UX Polish --- */
+body {
+  background: linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%) !important;
+}
+.container, .container-fluid {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+.card, .modal-content, .table-responsive {
+  box-shadow: 0 6px 32px rgba(37,99,235,0.10), 0 1.5px 6px rgba(0,0,0,0.04);
+}
+.card {
+  border: 1.5px solid #e0e7ef;
+  margin-bottom: 2rem;
+}
+.navbar, .footer {
+  box-shadow: 0 2px 16px rgba(37,99,235,0.06), 0 1.5px 6px rgba(0,0,0,0.03);
+}
+.btn {
+  letter-spacing: 0.5px;
+  font-size: 1.08rem;
+  padding: 0.6em 1.4em;
+  border-radius: 10px;
+}
+.btn-primary, .btn-success, .btn-warning, .btn-danger, .btn-info, .btn-secondary {
+  filter: brightness(1.01);
+}
+.btn:hover, .btn:focus {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 24px rgba(37,99,235,0.13);
+}
+.form-control, .form-select {
+  font-size: 1.08rem;
+  padding: 0.6em 1em;
+  border-radius: 10px;
+}
+.form-label {
+  font-size: 1.08rem;
+  margin-bottom: 0.4em;
+}
+.table th, .table td {
+  font-size: 1.05rem;
+  padding: 0.85rem 0.6rem;
+}
+.table-striped > tbody > tr:hover {
+  background-color: #dbeafe;
+}
+.navbar-nav .nav-link {
+  font-size: 1.08rem;
+  padding: 0.6em 1.2em;
+  border-radius: 8px;
+}
+.navbar-nav .nav-link.active {
+  background: #e0e7ef;
+  color: #2563eb !important;
+  border-bottom: 2.5px solid #2563eb;
+}
+.dashboard-title, .add-title, .edit-title, .sale-title, .product-title {
+  font-size: 2.1rem;
+  margin-bottom: 2rem;
+}
+.empty-cart, .empty-state {
+  padding: 3rem 1.5rem;
+  font-size: 1.15rem;
+}
+@media (max-width: 576px) {
+  .container, .container-fluid {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  .dashboard-title, .add-title, .edit-title, .sale-title, .product-title {
+    font-size: 1.3rem;
+    margin-bottom: 1.2rem;
+  }
+  .btn, .navbar-nav .nav-link {
+    font-size: 1rem;
+    padding: 0.5em 1em;
+  }
+  .card, .modal-content {
+    margin-bottom: 1rem;
+  }
+}
+/* --- UI/UX Refinements --- */
+.container, .container-fluid {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+.card {
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  border: none;
+  background: #fff;
+  transition: box-shadow 0.3s, transform 0.2s;
+}
+.card:hover, .card:focus-within {
+  box-shadow: 0 8px 32px rgba(37,99,235,0.13);
+  transform: translateY(-2px) scale(1.01);
+}
+.table th, .table td {
+  vertical-align: middle;
+  padding: 0.75rem 0.5rem;
+}
+.table thead th {
+  background: #e0e7ef;
+  color: #334155;
+  font-weight: 700;
+  border-bottom: 2px solid #cbd5e1;
+}
+.table-striped > tbody > tr:hover {
+  background-color: #e0e7ef;
+  transition: background 0.2s;
+}
+.form-control, .form-select {
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  font-size: 1rem;
+}
+.form-control:focus, .form-select:focus {
+  box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+  border-color: #2563eb;
+}
+.btn {
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  padding: 0.5em 1.2em;
+}
+.btn:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.btn:hover, .btn:focus {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 16px rgba(37,99,235,0.10);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.modal-content {
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(37,99,235,0.10);
+}
+.input-group-text {
+  border-radius: 8px;
+  background: #e0e7ef;
+  font-weight: 600;
+}
+.display-6, .display-5 {
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.empty-cart, .empty-state {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 2.5rem 1.5rem;
+  margin-bottom: 2rem;
+}
+.table-responsive {
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  background: #fff;
+}
+.navbar-nav .nav-link {
+  padding: 0.5em 1.2em;
+  border-radius: 6px;
+  margin: 0 0.2em;
+  transition: background 0.2s, color 0.2s;
+}
+.navbar-nav .nav-link:hover, .navbar-nav .nav-link:focus {
+  background: #e0e7ef;
+  color: #2563eb !important;
+}
+@media (max-width: 576px) {
+  .card { margin-bottom: 1.2rem; }
+  .table th, .table td { padding: 0.5rem 0.3rem; font-size: 0.97rem; }
+  .btn { font-size: 1rem; padding: 0.5em 1em; }
+  .modal-content { padding: 0.5rem; }
+}
 /* Custom styles for InventoryProject. Add branding tweaks here. */
 body {
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
