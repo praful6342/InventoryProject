@@ -4,58 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
-  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/custom.css">
-  <style>
-    body {
-      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
-      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-    }
-    .scanner-title {
-      font-weight: 700;
-      color: #2563eb;
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .card {
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-      transition: box-shadow 0.2s;
-    }
-    .card:hover {
-      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-    }
-    .btn-primary {
-      background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
-      border: none;
-    }
-    .btn-success {
-      background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
-      border: none;
-      color: #065f46;
-    }
-    .btn-danger {
-      background: linear-gradient(90deg, #ef4444 0%, #fca5a5 100%);
-      border: none;
-      color: #991b1b;
-    }
-    .btn-info {
-      background: linear-gradient(90deg, #38bdf8 0%, #bae6fd 100%);
-      border: none;
-      color: #075985;
-    }
-    .product-detail {
-      background-color: #f1f5f9;
-      border-radius: 8px;
-      padding: 16px;
-    }
-    .action-buttons .btn {
-      margin-right: 8px;
-      margin-bottom: 8px;
-    }
-  </style>
+  <script src="/js/app.js" defer></script>
   <!-- Html5Qrcode library -->
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
@@ -63,8 +15,9 @@
       width: 100%;
       max-width: 500px;
       margin: 0 auto;
-      border: 2px solid #ddd;
-      border-radius: 8px;
+      border: 2px solid #2563eb;
+      border-radius: 18px;
+      overflow: hidden;
     }
     #result {
       font-size: 1.2rem;
@@ -79,11 +32,8 @@
       padding: 15px;
       border-radius: 8px;
     }
-    .action-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-      flex-wrap: wrap;
+    #size-select {
+      width: 100px;
     }
   </style>
 </head>
@@ -92,15 +42,16 @@
   <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
     <div class="container-fluid">
       <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
           <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
-          <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/scan">Scan</a></li>
           <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/sale/cart">Cart</a></li>
         </ul>
       </div>
     </div>
@@ -137,10 +88,13 @@
     </div>
   </div>
 
+  <%- include('partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       if (typeof Html5Qrcode === 'undefined') {
-        document.getElementById('qr-reader-results').innerHTML = 
+        document.getElementById('qr-reader-results').innerHTML =
           '<div class="alert alert-danger">QR scanner library failed to load. Please refresh.</div>';
         return;
       }
@@ -154,7 +108,7 @@
       const clearBtn = document.getElementById('clearBtn');
 
       let html5QrCode = new Html5Qrcode(qrReaderElement.id);
-      
+
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 }
@@ -163,7 +117,7 @@
       let isScanning = false;
       let lastScannedId = null;
       const scannerSection = document.getElementById('scanner-section');
-      
+
       function fetchScannedProductAndDisplay() {
         fetch('/scan/scan-product', {
           method: 'POST',
@@ -177,37 +131,97 @@
             return;
           }
           const product = data.product;
-          let totalStock = 0;
-          let stockBySize = '';
+          // Build size options
+          let sizeOptions = '';
           if (product.variants && product.variants.length > 0) {
-            totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-            stockBySize = product.variants.map(v => `${v.size}: ${v.stock}`).join(', ');
+            product.variants.forEach(v => {
+              if (v.stock > 0) {
+                sizeOptions += `<option value="${v.size}" data-stock="${v.stock}">${v.size} (Stock: ${v.stock})</option>`;
+              }
+            });
           }
-          // Build product info with delete button
+          if (sizeOptions === '') {
+            sizeOptions = '<option value="" disabled>No sizes in stock</option>';
+          }
+
           let html = `<div class="mb-2 p-2 border rounded">
             <strong>${product.name}</strong><br>
             <span><b>Code:</b> ${product.product_code}</span><br>
             <span><b>Category:</b> ${product.category || '-'}</span><br>
             <span><b>Selling Price:</b> ₹${product.selling_price}</span><br>
-            <span><b>Current Stock:</b> ${totalStock}</span><br>
-            <span><b>Stock by Size:</b> ${stockBySize || '-'}</span><br>
-            <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary mt-2">View More Details</a>
-            <a href="/products/edit/${product.id}" class="btn btn-sm btn-warning mt-2">Edit Product</a>
-            <button class="btn btn-sm btn-danger mt-2 delete-scanned-product">Delete Product</button>
+            <hr>
+            <div class="row g-2">
+              <div class="col-md-5">
+                <select id="size-select" class="form-select form-select-sm">
+                  <option value="">Select Size</option>
+                  ${sizeOptions}
+                </select>
+              </div>
+              <div class="col-md-4">
+                <input type="number" id="cart-quantity" class="form-control form-control-sm" value="1" min="1">
+              </div>
+              <div class="col-md-3">
+                <button class="btn btn-success btn-sm w-100" id="add-to-cart">Add to Cart</button>
+              </div>
+            </div>
+            <hr>
+            <div class="d-flex gap-2 mt-2">
+              <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary">View Details</a>
+              <a href="/products/edit/${product.id}" class="btn btn-sm btn-warning">Edit</a>
+              <button class="btn btn-sm btn-danger delete-scanned-product">Delete</button>
+            </div>
           </div>`;
           productInfoDiv.innerHTML = html;
 
-          // Attach delete handler
+          // Attach add-to-cart handler with loading and toast
+          const addBtn = document.getElementById('add-to-cart');
+          addBtn.addEventListener('click', function() {
+            const sizeSelect = document.getElementById('size-select');
+            const size = sizeSelect.value;
+            const quantity = parseInt(document.getElementById('cart-quantity').value);
+            if (!size) {
+              showToast('Please select a size', 'warning');
+              return;
+            }
+            const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
+            const maxStock = parseInt(selectedOption.dataset.stock);
+            if (quantity < 1 || quantity > maxStock) {
+              showToast(`Quantity must be between 1 and ${maxStock}`, 'warning');
+              return;
+            }
+            setLoading(addBtn, true);
+            fetch('/sale/add', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ productId: product.id, size: size, quantity: quantity })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.error) {
+                showToast(data.error, 'danger');
+              } else {
+                showToast('Added to cart!', 'success');
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              showToast('Network error', 'danger');
+            })
+            .finally(() => setLoading(addBtn, false));
+          });
+
+          // Attach delete handler with toast
           productInfoDiv.querySelector('.delete-scanned-product').addEventListener('click', function() {
             if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+              const deleteBtn = this;
+              setLoading(deleteBtn, true);
               fetch(`/products/delete/${product.id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
               })
               .then(response => {
                 if (response.ok) {
-                  alert('Product deleted successfully');
-                  // Clear display and restart scanner
+                  showToast('Product deleted successfully', 'success');
                   resultDiv.innerText = '—';
                   productInfoDiv.innerHTML = '<p class="text-muted">Scan a QR code to see product details.</p>';
                   lastScannedId = null;
@@ -215,16 +229,16 @@
                   if (scannerSection) {
                     scannerSection.style.display = '';
                   }
-                  // Optionally restart scanner
                   startScanner();
                 } else {
-                  alert('Error deleting product');
+                  showToast('Error deleting product', 'danger');
                 }
               })
               .catch(err => {
                 console.error(err);
-                alert('Network error');
-              });
+                showToast('Network error', 'danger');
+              })
+              .finally(() => setLoading(deleteBtn, false));
             }
           });
 
@@ -330,6 +344,5 @@
       }, 500);
     });
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

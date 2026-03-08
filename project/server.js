@@ -10,6 +10,7 @@ const productRoutes = require('./routes/products');
 const apiRoutes = require('./routes/api');
 const billRoutes = require('./routes/bill');
 const dashboardRoutes = require('./routes/dashboard');
+const saleRoutes = require('./routes/sale');
 
 const app = express();
 const PORT = 3000;
@@ -29,7 +30,7 @@ app.use(session({
 
 // Set view engine
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.resolve(__dirname, 'views'));
 
 // Use routes
 app.use('/products', productRoutes);
@@ -37,6 +38,8 @@ app.use('/scan', scanRoutes);
 app.use('/api', apiRoutes);
 app.use('/bill', billRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/sale', saleRoutes);
+
 
 // Home route – landing page
 app.get('/', (req, res) => {

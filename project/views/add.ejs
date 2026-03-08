@@ -7,6 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/custom.css">
+  <script src="/js/app.js" defer></script>
   <style>
     body {
       background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
@@ -38,19 +39,20 @@
   </style>
 </head>
 <body>
-  <!-- Navigation Bar (updated) -->
+  <!-- Navigation Bar (Products active) -->
   <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
     <div class="container-fluid">
       <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
           <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-          <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/products">Products</a></li>
           <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
           <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/sale/cart">Cart</a></li>
         </ul>
       </div>
     </div>
@@ -58,7 +60,6 @@
   
   <div class="container mt-4">
     <h1 class="add-title"><i class="fa-solid fa-plus me-2"></i>Add New Product</h1>
-    <!-- Removed Upload Inventory CSV button -->
     <form action="/products/add" method="POST">
       <div class="mb-3">
         <label for="category" class="form-label">Category</label>
@@ -116,6 +117,10 @@
       <a href="/products" class="btn btn-secondary">Cancel</a>
     </form>
   </div>
+
+  <%- include('partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let sizeIndex = 1;
     document.getElementById('add-size-row').addEventListener('click', function() {
@@ -157,6 +162,5 @@
     }
     updateRemoveButtons();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

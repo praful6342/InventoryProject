@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/custom.css">
+  <script src="/js/app.js" defer></script>
+  <style>
+    .checkout-title {
+      font-weight: 700;
+      color: #2563eb;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .card {
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .btn-success {
+      background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
+      border: none;
+      color: #065f46;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar (Cart is active because checkout is part of cart flow) -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
+          <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
+          <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/sale/cart">Cart</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <h1 class="checkout-title"><i class="fa-solid fa-credit-card me-2"></i>Checkout</h1>
+
+    <div class="row">
+      <div class="col-md-7">
+        <div class="card p-4">
+          <h4 class="mb-3">Customer Information (Optional)</h4>
+          <form action="/sale/checkout" method="POST">
+            <div class="mb-3">
+              <label for="customerName" class="form-label">Customer Name</label>
+              <input type="text" class="form-control" id="customerName" name="customerName">
+            </div>
+            <div class="mb-3">
+              <label for="customerPhone" class="form-label">Phone Number</label>
+              <input type="tel" class="form-control" id="customerPhone" name="customerPhone">
+            </div>
+            <div class="mb-3">
+              <label for="customerEmail" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="customerEmail" name="customerEmail">
+            </div>
+            <button type="submit" class="btn btn-success btn-lg w-100">Complete Sale</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-md-5">
+        <div class="card p-4">
+          <h4 class="mb-3">Order Summary</h4>
+          <ul class="list-group list-group-flush">
+            <% let total = 0; %>
+            <% cart.forEach(item => { %>
+              <% const itemTotal = item.selling_price * item.quantity; %>
+              <% total += itemTotal; %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <%= item.name %> (<%= item.size %>) x <%= item.quantity %>
+                <span class="badge bg-primary rounded-pill">₹<%= itemTotal.toFixed(2) %></span>
+              </li>
+            <% }); %>
+            <li class="list-group-item d-flex justify-content-between align-items-center fw-bold">
+              Total
+              <span class="badge bg-success rounded-pill fs-6">₹<%= total.toFixed(2) %></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/footer') %>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

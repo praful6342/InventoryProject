@@ -7,66 +7,29 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/custom.css">
-  <style>
-    body {
-      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
-      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-    }
-    .dashboard-title {
-      font-weight: 700;
-      color: #2d3748;
-      letter-spacing: 1px;
-      margin-bottom: 24px;
-      text-align: center;
-    }
-    .card {
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-      transition: box-shadow 0.2s;
-    }
-    .card:hover {
-      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-    }
-    .card-title {
-      font-weight: 600;
-      color: #2563eb;
-    }
-    .btn-primary {
-      background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
-      border: none;
-    }
-    .btn-success {
-      background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
-      border: none;
-      color: #065f46;
-    }
-    .btn-warning {
-      background: linear-gradient(90deg, #f59e42 0%, #fef08a 100%);
-      border: none;
-      color: #92400e;
-    }
-  </style>
+  <script src="/js/app.js" defer></script>
 </head>
 <body>
   <!-- Navigation Bar -->
   <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 fade-in">
     <div class="container-fluid">
       <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
           <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
           <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/sale/cart">Cart</a></li>
         </ul>
       </div>
     </div>
   </nav>
   
-  <div class="container fade-in">
+  <main class="container fade-in">
     <div class="hero-banner mb-5">
       <h1><i class="fa-solid fa-shirt me-2"></i>Clothing Store Management</h1>
       <a href="/products" class="btn btn-primary btn-lg me-2"><i class="fa-solid fa-list me-1"></i> Products</a>
@@ -95,7 +58,10 @@
     <div class="alert alert-info fade-in mt-4" role="alert">
       <i class="fa-solid fa-circle-info me-2"></i>Tip: Use your mobile device for the fastest QR scanning experience!
     </div>
-  </div>
+  </main>
+
+  <%- include('partials/footer') %>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
