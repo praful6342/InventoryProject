@@ -79,9 +79,9 @@
         <a href="/scan" class="btn btn-primary">Go to Scanner</a>
       </div>
     <% } else { %>
-      <div class="table-responsive cart-table">
-        <table class="table table-striped mb-0">
-          <thead>
+      <div class="table-responsive-sm table-responsive-md table-responsive-lg cart-table">
+        <table class="table table-striped align-middle mb-0">
+          <thead class="table-light">
             <tr>
               <th>Product</th>
               <th>Code</th>
@@ -107,7 +107,7 @@
                 </td>
                 <td class="item-total">₹<%= itemTotal.toFixed(2) %></td>
                 <td>
-                  <button class="btn btn-sm btn-danger remove-item" data-product-id="<%= item.productId %>" data-size="<%= item.size %>">
+                  <button class="btn btn-danger btn-sm w-100 mb-1 remove-item" data-product-id="<%= item.productId %>" data-size="<%= item.size %>">
                     <i class="fa-solid fa-trash"></i> Remove
                   </button>
                 </td>

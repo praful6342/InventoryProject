@@ -4,8 +4,8 @@ const db = require('../database');
 const QRCode = require('qrcode');
 
 // Helper: generate product code from category, name, supplier (price excluded)
-function generateProductCode(category, name, supplier) {
-  return `${category}_${name}_${supplier}`
+function generateProductCode(category, name) {
+  return `${category}_${name}`
     .replace(/\s+/g, '')
     .toUpperCase();
 }
@@ -39,7 +39,7 @@ router.post('/add', (req, res) => {
     sizes
   } = req.body;
 
-  const productCode = generateProductCode(category, name, supplier);
+  const productCode = generateProductCode(category, name);
 
   db.run(
     `INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -150,7 +150,7 @@ router.post('/update/:id', (req, res) => {
   } = req.body;
 
   // Recalculate product code (category/name/supplier might have changed)
-  const productCode = generateProductCode(category, name, supplier);
+  const productCode = generateProductCode(category, name);
 
   db.run(
     `UPDATE products SET product_code = ?, category = ?, name = ?, supplier = ?, cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ? WHERE id = ?`,
