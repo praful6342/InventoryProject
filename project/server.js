@@ -43,7 +43,7 @@ app.use('/sale', saleRoutes);
 
 // Home route – landing page
 app.get('/', (req, res) => {
-  res.render('index');
+  res.redirect('/dashboard');
 });
 
 // HTTPS options (self-signed certificate)
