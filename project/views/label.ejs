@@ -36,39 +36,66 @@
     }
     
     .label-preview {
-      width: 400px;
-      min-height: 200px;
-      padding: 20px;
+      width: 200px;
+      height: 200px;
       background: white;
-      border: 2px solid #2563eb;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 20px;
-    }
-    
-    .qr-section {
-      flex: 0 0 auto;
+      border: 1px solid #bbb;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 0;
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .product-code-label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .product-code {
+      font-size: 18px;
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      color: #1e293b;
+      word-break: break-all;
+      background: #e0e7ff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border-left: 4px solid #2563eb;
+      margin-bottom: 10px;
+      margin-top: 4px;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+    }
+    
+    .qr-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       gap: 5px;
     }
     
     .qr-image {
-      width: 120px;
-      height: 120px;
-      border: 1px solid #e2e8f0;
-      padding: 5px;
-      border-radius: 8px;
+      width: 110px;
+      height: 110px;
+      border: 4px solid #2563eb;
+      border-radius: 50%;
       background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.08);
     }
     
     .qr-image img {
-      width: 100%;
-      height: 100%;
+      width: 90px;
+      height: 90px;
       object-fit: contain;
     }
     
@@ -83,25 +110,6 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-    }
-    
-    .product-code {
-      font-size: 16px;
-      font-weight: bold;
-      font-family: 'Courier New', monospace;
-      color: #1e293b;
-      word-break: break-all;
-      background: #f8fafc;
-      padding: 10px;
-      border-radius: 6px;
-      border-left: 4px solid #2563eb;
-    }
-    
-    .product-code-label {
-      font-size: 12px;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
     
     .download-controls {
@@ -198,17 +206,15 @@
   <h1>📦 Product Label Preview</h1>
   
   <div class="preview-container">
-    <div id="labelPreview" class="label-preview">
-      <div class="qr-section">
-        <div class="qr-image">
-          <img id="qrImg" src="" alt="QR Code">
+    <div id="labelPreview" class="label-preview" style="width: 200px; height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; border: 1px solid #bbb; border-radius: 0; box-shadow: none; padding: 0; font-family: 'Courier New', monospace;">
+      <div style="font-size: 13px; margin-bottom: 8px;">PRODUCT CODE</div>
+      <div id="productCodeDisplay" style="font-size: 15px; font-family: 'Courier New', monospace; margin-bottom: 12px;"></div>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="width: 90px; height: 90px; border: 1px solid #bbb; border-radius: 0; background: white; margin-bottom: 8px; display: flex; align-items: center; justify-content: center;">
+          <img id="qrImg" src="" alt="QR Code" style="width: 80px; height: 80px; object-fit: contain;">
         </div>
-        <div class="qr-label">SCAN QR CODE</div>
       </div>
-      <div class="code-section">
-        <div class="product-code-label">PRODUCT CODE</div>
-        <div id="productCodeDisplay" class="product-code"></div>
-      </div>
+      <div style="font-size: 14px; margin-top: 8px;">₹ <span id="sellingPriceValue"></span></div>
     </div>
     <p style="color: #666; margin-top: 10px;">Preview of your label</p>
   </div>
@@ -233,40 +239,37 @@
     const product = <%- JSON.stringify(product) %>;
     const qrCodeUrl = "<%= qrCodeUrl %>";
     const productCode = product.product_code;
-    
-    // Set the preview
+    const sellingPrice = product.selling_price;
     document.getElementById('qrImg').src = qrCodeUrl;
     document.getElementById('productCodeDisplay').textContent = productCode;
+    document.getElementById('sellingPriceValue').textContent = sellingPrice;
     
     // Function to create a label element (for image generation)
     function createLabelElement() {
       const div = document.createElement('div');
       div.className = 'label-preview';
-      div.style.width = '400px';
-      div.style.padding = '20px';
+      div.style.width = '200px';
+      div.style.height = '200px';
       div.style.background = 'white';
-      div.style.border = '2px solid #2563eb';
-      div.style.borderRadius = '8px';
+      div.style.border = '1px solid #bbb';
+      div.style.borderRadius = '0';
+      div.style.boxShadow = 'none';
       div.style.display = 'flex';
-      div.style.flexDirection = 'row';
+      div.style.flexDirection = 'column';
       div.style.alignItems = 'center';
-      div.style.gap = '20px';
-      
+      div.style.justifyContent = 'center';
+      div.style.padding = '0';
+      div.style.fontFamily = "'Courier New', monospace";
       div.innerHTML = `
-        <div class="qr-section" style="flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 5px;">
-          <div style="width: 120px; height: 120px; border: 1px solid #e2e8f0; padding: 5px; border-radius: 8px; background: white;">
-            <img src="${qrCodeUrl}" style="width: 100%; height: 100%; object-fit: contain;">
-          </div>
-          <div style="font-size: 10px; color: #64748b;">SCAN QR CODE</div>
-        </div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
-          <div style="font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">PRODUCT CODE</div>
-          <div style="font-size: 16px; font-weight: bold; font-family: 'Courier New', monospace; color: #1e293b; word-break: break-all; background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 4px solid #2563eb;">
-            ${productCode}
+        <div style="font-size: 13px; margin-bottom: 8px;">PRODUCT CODE</div>
+        <div style="font-size: 15px; font-family: 'Courier New', monospace; margin-bottom: 12px;">${productCode}</div>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div style="width: 90px; height: 90px; border: 1px solid #bbb; border-radius: 0; background: white; margin-bottom: 8px; display: flex; align-items: center; justify-content: center;">
+            <img src="${qrCodeUrl}" style="width: 80px; height: 80px; object-fit: contain;">
           </div>
         </div>
+        <div style="font-size: 14px; margin-top: 8px;">₹ ${sellingPrice}</div>
       `;
-      
       return div;
     }
     
