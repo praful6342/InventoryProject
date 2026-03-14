@@ -134,11 +134,11 @@
       </div>
       <div class="mb-3">
         <label for="margin_rs" class="form-label">Margin (₹)</label>
-        <input type="number" step="0.01" class="form-control" id="margin_rs" name="margin_rs" value="<%= product.margin_rs %>">
+        <input type="number" step="0.01" class="form-control" id="margin_rs" name="margin_rs" value="<%= product.margin_rs %>" readonly>
       </div>
       <div class="mb-3">
         <label for="selling_price" class="form-label">Selling Price (₹)</label>
-        <input type="number" step="0.01" class="form-control" id="selling_price" name="selling_price" value="<%= product.selling_price %>">
+        <input type="number" step="0.01" class="form-control" id="selling_price" name="selling_price" value="<%= product.selling_price %>" readonly>
       </div>
       <button type="submit" class="btn btn-primary">Update Product</button>
       <a href="/products/<%= product.id %>" class="btn btn-secondary">Cancel</a>
@@ -148,58 +148,79 @@
   <%- include('partials/footer') %>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-      let sizeIndex = parseInt('<%= product.variants && product.variants.length ? product.variants.length : 1 %>', 10);
-      document.getElementById('add-size-row').addEventListener('click', function() {
-        const container = document.getElementById('sizes-container');
-        const newRow = document.createElement('div');
-        newRow.className = 'row mb-2 size-row';
-        newRow.innerHTML = `
-          <div class="col-md-5">
-            <select class="form-control" name="sizes[${sizeIndex}][size]">
-              <option value="">Select Size</option>
-              <option value="S">S</option>
-              <option value="M">M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
-              <option value="XXL">XXL</option>
-            </select>
-          </div>
-          <div class="col-md-5">
-            <input type="number" class="form-control" name="sizes[${sizeIndex}][stock]" placeholder="Quantity">
-          </div>
-          <div class="col-md-2">
-            <button type="button" class="btn btn-danger remove-size-row">Remove</button>
-          </div>
-        `;
-        container.appendChild(newRow);
-        updateRemoveButtons();
-        sizeIndex++;
-      });
-      function updateRemoveButtons() {
-        const rows = document.querySelectorAll('.size-row');
-        rows.forEach((row, idx) => {
-          const btn = row.querySelector('.remove-size-row');
-          if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
-          btn && btn.addEventListener('click', function() {
-            row.remove();
-            updateRemoveButtons();
-          });
+      <script>
+        let sizeIndex = parseInt('<%= product.variants && product.variants.length ? product.variants.length : 1 %>', 10);
+        document.getElementById('add-size-row').addEventListener('click', function() {
+          const container = document.getElementById('sizes-container');
+          const newRow = document.createElement('div');
+          newRow.className = 'row mb-2 size-row';
+          newRow.innerHTML = `
+            <div class="col-md-5">
+              <select class="form-control" name="sizes[${sizeIndex}][size]">
+                <option value="">Select Size</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+              </select>
+            </div>
+            <div class="col-md-5">
+              <input type="number" class="form-control" name="sizes[${sizeIndex}][stock]" placeholder="Quantity">
+            </div>
+            <div class="col-md-2">
+              <button type="button" class="btn btn-danger remove-size-row">Remove</button>
+            </div>
+          `;
+          container.appendChild(newRow);
+          updateRemoveButtons();
+          sizeIndex++;
         });
-      }
-      updateRemoveButtons();
-
-      // Toggle sizes/stock section
-      document.getElementById('hasSizes').addEventListener('change', function(e) {
-        if (e.target.checked) {
-          document.getElementById('sizes-section').style.display = 'block';
-          document.getElementById('single-stock-section').style.display = 'none';
-        } else {
-          document.getElementById('sizes-section').style.display = 'none';
-          document.getElementById('single-stock-section').style.display = 'block';
+        function updateRemoveButtons() {
+          const rows = document.querySelectorAll('.size-row');
+          rows.forEach((row, idx) => {
+            const btn = row.querySelector('.remove-size-row');
+            if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
+            btn && btn.addEventListener('click', function() {
+              row.remove();
+              updateRemoveButtons();
+            });
+          });
         }
-      });
-    </script>
+        updateRemoveButtons();
+
+        // Toggle sizes/stock section
+        document.getElementById('hasSizes').addEventListener('change', function(e) {
+          if (e.target.checked) {
+            document.getElementById('sizes-section').style.display = 'block';
+            document.getElementById('single-stock-section').style.display = 'none';
+          } else {
+            document.getElementById('sizes-section').style.display = 'none';
+            document.getElementById('single-stock-section').style.display = 'block';
+          }
+        });
+
+        // Auto-calculate margin and selling price
+        function calculatePrices() {
+          const costInput = document.getElementById('cost_price');
+          const marginPercentInput = document.getElementById('margin_percent');
+          const marginRsInput = document.getElementById('margin_rs');
+          const sellingPriceInput = document.getElementById('selling_price');
+
+          const cost = parseFloat(costInput.value) || 0;
+          const marginPercent = parseFloat(marginPercentInput.value) || 0;
+
+          const marginAmount = cost * (marginPercent / 100);
+          const sellingPrice = cost + marginAmount;
+
+          marginRsInput.value = marginAmount.toFixed(2);
+          sellingPriceInput.value = sellingPrice.toFixed(2);
+        }
+
+        document.getElementById('cost_price').addEventListener('input', calculatePrices);
+        document.getElementById('margin_percent').addEventListener('input', calculatePrices);
+        calculatePrices();
+      </script>
   </script>
 </body>
 </html>
