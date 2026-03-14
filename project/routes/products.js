@@ -21,12 +21,12 @@ router.get('/', (req, res) => {
   });
 });
 
-// Show add product form
+// Show add product form (separate page)
 router.get('/add', (req, res) => {
   res.render('add');
 });
 
-// Add product (with variants)
+// Add product (with variants) – JSON API for modal
 router.post('/add', (req, res) => {
   const {
     category,
@@ -41,27 +41,27 @@ router.post('/add', (req, res) => {
     stock
   } = req.body;
 
+  // Server-side validation for required fields
+  if (!category || !name || !supplier || !cost_price || !margin_percent) {
+    return res.status(400).json({ error: 'Missing required fields: category, name, supplier, cost price, margin percent' });
+  }
+
   const productCode = generateProductCode(category, name);
+  const hasSizes = has_sizes === "on" ? 1 : 0;
 
   db.run(
-    `INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price],
+    `INSERT INTO products (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, has_sizes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, hasSizes],
     function(err) {
       if (err) {
         console.error(err);
-        return res.status(500).send('Error saving product');
+        return res.status(500).json({ error: 'Error saving product' });
       }
       const productId = this.lastID;
 
       // Set permanent QR code based on product ID
       db.run('UPDATE products SET qr_code = ? WHERE id = ?', [`pid:${productId}`, productId], (err) => {
         if (err) console.error('Error setting qr_code:', err);
-      });
-
-      // Handle has_sizes flag
-      const hasSizes = has_sizes === "on" ? 1 : 0;
-      db.run('UPDATE products SET has_sizes = ? WHERE id = ?', [hasSizes, productId], (err) => {
-        if (err) console.error('Error updating has_sizes:', err);
       });
 
       if (hasSizes) {
@@ -72,35 +72,39 @@ router.post('/add', (req, res) => {
         } else if (sizes && typeof sizes === 'object') {
           sizeEntries = Object.values(sizes);
         }
-        if (!sizeEntries || sizeEntries.length === 0) {
-          return res.redirect('/products');
+        const validVariants = sizeEntries.filter(v => v && v.size && v.size.trim() !== '' && v.stock !== undefined && v.stock !== '');
+        if (validVariants.length === 0) {
+          // Clean up the inserted product if validation fails
+          db.run('DELETE FROM products WHERE id = ?', [productId]);
+          return res.status(400).json({ error: 'At least one size with stock is required.' });
         }
+
         let completed = 0;
-        const total = sizeEntries.filter(v => v && v.size && v.stock !== undefined).length;
-        if (total === 0) return res.redirect('/products');
-        sizeEntries.forEach(variant => {
-          if (!variant || !variant.size || variant.stock === undefined) {
-            completed++;
-            if (completed === total) res.redirect('/products');
-            return;
-          }
+        const total = validVariants.length;
+        validVariants.forEach(variant => {
           db.run(
             `INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)`,
             [productId, variant.size, variant.stock],
             (err) => {
               if (err) console.error('Error saving variant:', err);
               completed++;
-              if (completed === total) res.redirect('/products');
+              if (completed === total) {
+                res.json({ success: true, redirect: '/products' });
+              }
             }
           );
         });
       } else {
-        // Single stock, no sizes
+        // Single stock, no sizes – validate stock
+        if (stock === undefined || stock === '') {
+          db.run('DELETE FROM products WHERE id = ?', [productId]);
+          return res.status(400).json({ error: 'Stock quantity is required.' });
+        }
         const singleStock = parseInt(stock) || 0;
         db.run('INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)',
           [productId, 'ONESIZE', singleStock], (err) => {
             if (err) console.error('Error saving ONESIZE variant:', err);
-            res.redirect('/products');
+            res.json({ success: true, redirect: '/products' });
           });
       }
     }
@@ -131,6 +135,7 @@ router.get('/:id', (req, res) => {
 // Show edit product form
 router.get('/edit/:id', (req, res) => {
   const id = req.params.id;
+  const error = req.query.error || null;
   db.get('SELECT * FROM products WHERE id = ?', [id], (err, productRow) => {
     if (err) {
       console.error(err);
@@ -145,7 +150,7 @@ router.get('/edit/:id', (req, res) => {
         return res.status(500).send('Database error');
       }
       const product = { ...productRow, variants: variants || [], has_sizes: productRow.has_sizes };
-      res.render('edit', { product });
+      res.render('edit', { product, error });
     });
   });
 });
@@ -166,12 +171,35 @@ router.post('/update/:id', (req, res) => {
     stock
   } = req.body;
 
-  // Recalculate product code (category/name/supplier might have changed)
+  // Server-side validation for required fields
+  if (!category || !name || !supplier || !cost_price || !margin_percent) {
+    return res.redirect('/products/edit/' + id + '?error=Missing required fields');
+  }
+
   const productCode = generateProductCode(category, name);
+  const hasSizes = has_sizes === "on" ? 1 : 0;
+
+  // Conditional validation for sizes/stock
+  if (hasSizes) {
+    let sizeEntries = [];
+    if (Array.isArray(sizes)) {
+      sizeEntries = sizes;
+    } else if (sizes && typeof sizes === 'object') {
+      sizeEntries = Object.values(sizes);
+    }
+    const validVariants = sizeEntries.filter(v => v && v.size && v.size.trim() !== '' && v.stock !== undefined && v.stock !== '');
+    if (validVariants.length === 0) {
+      return res.redirect('/products/edit/' + id + '?error=At least one size with stock is required.');
+    }
+  } else {
+    if (stock === undefined || stock === '') {
+      return res.redirect('/products/edit/' + id + '?error=Stock quantity is required.');
+    }
+  }
 
   db.run(
     `UPDATE products SET product_code = ?, category = ?, name = ?, supplier = ?, cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ?, has_sizes = ? WHERE id = ?`,
-    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, has_sizes === "on" ? 1 : 0, id],
+    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, hasSizes, id],
     function(err) {
       if (err) {
         console.error(err);
@@ -185,39 +213,33 @@ router.post('/update/:id', (req, res) => {
           return res.status(500).send('Error updating variants');
         }
 
-        const hasSizes = has_sizes === "on" ? 1 : 0;
         if (hasSizes) {
-          // Insert new variants
           let sizeEntries = [];
           if (Array.isArray(sizes)) {
             sizeEntries = sizes;
           } else if (sizes && typeof sizes === 'object') {
             sizeEntries = Object.values(sizes);
           }
-          if (!sizeEntries || sizeEntries.length === 0) {
+          const validVariants = sizeEntries.filter(v => v && v.size && v.size.trim() !== '' && v.stock !== undefined && v.stock !== '');
+          let completed = 0;
+          const total = validVariants.length;
+          if (total === 0) {
             return res.redirect('/products/' + id);
           }
-          let completed = 0;
-          const total = sizeEntries.filter(v => v && v.size && v.stock !== undefined).length;
-          if (total === 0) return res.redirect('/products/' + id);
-          sizeEntries.forEach(variant => {
-            if (!variant || !variant.size || variant.stock === undefined) {
-              completed++;
-              if (completed === total) res.redirect('/products/' + id);
-              return;
-            }
+          validVariants.forEach(variant => {
             db.run(
               `INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)`,
               [id, variant.size, variant.stock],
               function(err3) {
                 if (err3) console.error('Error saving variant:', err3);
                 completed++;
-                if (completed === total) res.redirect('/products/' + id);
+                if (completed === total) {
+                  res.redirect('/products/' + id);
+                }
               }
             );
           });
         } else {
-          // Single stock, no sizes
           const singleStock = parseInt(stock) || 0;
           db.run('INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)',
             [id, 'ONESIZE', singleStock], function(err3) {
