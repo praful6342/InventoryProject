@@ -82,6 +82,32 @@
       </div>
     </div>
 
+      <!-- Filter row -->
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <input type="text" id="search-input" class="form-control" placeholder="Search by name, code, category, supplier...">
+        </div>
+        <div class="col-md-3">
+          <select id="category-filter" class="form-select">
+            <option value="">All Categories</option>
+            <!-- options populated dynamically from products -->
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="size-filter" class="form-select">
+            <option value="">All Sizes</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button id="clear-filters" class="btn btn-outline-secondary w-100">Clear</button>
+        </div>
+      </div>
+
     <div class="d-flex justify-content-between align-items-center mb-3">
       <button type="button" id="add-product-modal-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
       <div>
@@ -192,122 +218,189 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Modal size row logic
-    let modalSizeIndex = 1;
-    document.getElementById('add-modal-size-row').addEventListener('click', function() {
-      const container = document.getElementById('modal-sizes-container');
-      const newRow = document.createElement('div');
-      newRow.className = 'row mb-2 modal-size-row';
-      newRow.innerHTML = `
-        <div class="col-md-5">
-          <select class="form-control" name="sizes[${modalSizeIndex}][size]">
-            <option value="">Select Size</option>
-            <option value="S">S</option>
-            <option value="M">M</option>
-            <option value="L">L</option>
-            <option value="XL">XL</option>
-            <option value="XXL">XXL</option>
-          </select>
-        </div>
-        <div class="col-md-5">
-          <input type="number" class="form-control" name="sizes[${modalSizeIndex}][stock]" placeholder="Quantity">
-        </div>
-        <div class="col-md-2">
-          <button type="button" class="btn btn-danger remove-modal-size-row">Remove</button>
-        </div>
-      `;
-      container.appendChild(newRow);
+    <script>
+      // ========== EXISTING MODAL SIZE ROW LOGIC (unchanged) ==========
+      let modalSizeIndex = 1;
+      document.getElementById('add-modal-size-row').addEventListener('click', function() {
+        const container = document.getElementById('modal-sizes-container');
+        const newRow = document.createElement('div');
+        newRow.className = 'row mb-2 modal-size-row';
+        newRow.innerHTML = `
+          <div class="col-md-5">
+            <select class="form-control" name="sizes[${modalSizeIndex}][size]">
+              <option value="">Select Size</option>
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <input type="number" class="form-control" name="sizes[${modalSizeIndex}][stock]" placeholder="Quantity">
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="btn btn-danger remove-modal-size-row">Remove</button>
+          </div>
+        `;
+        container.appendChild(newRow);
+        updateModalRemoveButtons();
+        modalSizeIndex++;
+      });
+
+      function updateModalRemoveButtons() {
+        const rows = document.querySelectorAll('.modal-size-row');
+        rows.forEach((row, idx) => {
+          const btn = row.querySelector('.remove-modal-size-row');
+          if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
+          btn && btn.addEventListener('click', function() {
+            row.remove();
+            updateModalRemoveButtons();
+          });
+        });
+      }
       updateModalRemoveButtons();
-      modalSizeIndex++;
-    });
 
-    function updateModalRemoveButtons() {
-      const rows = document.querySelectorAll('.modal-size-row');
-      rows.forEach((row, idx) => {
-        const btn = row.querySelector('.remove-modal-size-row');
-        if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
-        btn && btn.addEventListener('click', function() {
-          row.remove();
-          updateModalRemoveButtons();
-        });
-      });
-    }
-    updateModalRemoveButtons();
-
-    // Handle add product form submit with toasts
-    document.getElementById('add-product-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
-      const data = {};
-      formData.forEach((value, key) => {
-        if (key.startsWith('sizes[')) {
-          const match = key.match(/sizes\[(\d+)\]\[(\w+)\]/);
-          if (match) {
-            const idx = match[1];
-            const field = match[2];
-            data.sizes = data.sizes || {};
-            data.sizes[idx] = data.sizes[idx] || {};
-            data.sizes[idx][field] = value;
+      // ========== EXISTING ADD PRODUCT FORM SUBMIT (unchanged) ==========
+      document.getElementById('add-product-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const data = {};
+        formData.forEach((value, key) => {
+          if (key.startsWith('sizes[')) {
+            const match = key.match(/sizes\[(\d+)\]\[(\w+)\]/);
+            if (match) {
+              const idx = match[1];
+              const field = match[2];
+              data.sizes = data.sizes || {};
+              data.sizes[idx] = data.sizes[idx] || {};
+              data.sizes[idx][field] = value;
+            }
+          } else {
+            data[key] = value;
           }
-        } else {
-          data[key] = value;
+        });
+        if (data.sizes) {
+          data.sizes = Object.values(data.sizes);
+        }
+        try {
+          const res = await fetch('/products/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          if (res.ok) {
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addProductModal'));
+            modal.hide();
+            fetchProducts();
+            form.reset();
+            document.getElementById('modal-sizes-container').innerHTML = `<div class="row mb-2 modal-size-row">
+              <div class="col-md-5">
+                <select class="form-control" name="sizes[0][size]">
+                  <option value="">Select Size</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
+              </div>
+              <div class="col-md-5">
+                <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
+              </div>
+              <div class="col-md-2">
+                <button type="button" class="btn btn-danger remove-modal-size-row" style="display:none;">Remove</button>
+              </div>
+            </div>`;
+            modalSizeIndex = 1;
+            updateModalRemoveButtons();
+            showToast('Product added successfully!', 'success');
+          } else {
+            showToast('Error saving product', 'danger');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Network error', 'danger');
         }
       });
-      if (data.sizes) {
-        data.sizes = Object.values(data.sizes);
-      }
-      try {
-        const res = await fetch('/products/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) {
-          const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addProductModal'));
-          modal.hide();
-          fetchProducts();
-          form.reset();
-          document.getElementById('modal-sizes-container').innerHTML = `<div class="row mb-2 modal-size-row">
-            <div class="col-md-5">
-              <select class="form-control" name="sizes[0][size]">
-                <option value="">Select Size</option>
-                <option value="S">S</option>
-                <option value="M">M</option>
-                <option value="L">L</option>
-                <option value="XL">XL</option>
-                <option value="XXL">XXL</option>
-              </select>
-            </div>
-            <div class="col-md-5">
-              <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
-            </div>
-            <div class="col-md-2">
-              <button type="button" class="btn btn-danger remove-modal-size-row" style="display:none;">Remove</button>
-            </div>
-          </div>`;
-          modalSizeIndex = 1;
-          updateModalRemoveButtons();
-          showToast('Product added successfully!', 'success');
-        } else {
-          showToast('Error saving product', 'danger');
+
+      // ========== NEW FILTERING CODE ==========
+      let allProducts = [];
+
+      async function fetchProducts() {
+        try {
+          const response = await fetch('/api/products?_=' + Date.now());
+          if (!response.ok) throw new Error('Failed to fetch');
+          allProducts = await response.json();
+          populateCategoryDropdown();
+          applyFilters();
+        } catch (error) {
+          console.error(error);
+          document.getElementById('products-table-body').innerHTML = '<tr><td colspan="11" class="text-center text-danger">Error loading products</td></tr>';
+          showToast('Error loading products', 'danger');
         }
-      } catch (err) {
-        console.error(err);
-        showToast('Network error', 'danger');
       }
-    });
 
-    async function fetchProducts() {
-      try {
-        const response = await fetch('/api/products?_=' + Date.now());
-        if (!response.ok) throw new Error('Failed to fetch');
-        const products = await response.json();
+      function applyFilters() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+        const category = document.getElementById('category-filter').value;
+        const size = document.getElementById('size-filter').value;
 
+        const filtered = allProducts.filter(product => {
+          const matchesSearch = searchTerm === '' ||
+            product.name.toLowerCase().includes(searchTerm) ||
+            product.product_code.toLowerCase().includes(searchTerm) ||
+            product.category.toLowerCase().includes(searchTerm) ||
+            product.supplier.toLowerCase().includes(searchTerm);
+
+          const matchesCategory = category === '' || product.category === category;
+
+          const matchesSize = size === '' ||
+            (product.variants && product.variants.some(v => v.size === size));
+
+          return matchesSearch && matchesCategory && matchesSize;
+        });
+
+        renderTable(filtered);
+        updateTotals(filtered);
+      }
+
+      function renderTable(products) {
         const tbody = document.getElementById('products-table-body');
+        if (products.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="11" class="text-center">No products match your filters.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = products.map(product => `
+          <tr>
+            <td>${product.product_code}</td>
+            <td>${product.category}</td>
+            <td>${product.name}</td>
+            <td>${product.supplier}</td>
+            <td>
+              ${product.variants && product.variants.length > 0
+                ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
+                : '<span class="text-muted">—</span>'}
+            </td>
+            <td>₹${product.cost_price}</td>
+            <td>${product.margin_percent}%</td>
+            <td>${product.margin_rs}</td>
+            <td>₹${product.selling_price}</td>
+            <td>
+              <a href="/products/${product.id}">
+                <img src="/api/qr/${product.qr_code}" alt="QR" style="width: 50px; height: 50px;">
+              </a>
+            </td>
+            <td>
+              <a href="/products/${product.id}" class="btn btn-info btn-sm w-100">View</a>
+            </td>
+          </tr>
+        `).join('');
+        document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
+      }
 
-        // Calculate totals
+      function updateTotals(products) {
         let totalCost = 0, totalSelling = 0;
         products.forEach(product => {
           const costPrice = parseFloat(product.cost_price) || 0;
@@ -322,53 +415,35 @@
         });
         document.getElementById('totalCostPrice').innerText = `₹${totalCost.toFixed(2)}`;
         document.getElementById('totalSellingPrice').innerText = `₹${totalSelling.toFixed(2)}`;
-
-        if (products.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="11" class="text-center">No products found.</td></tr>';
-        } else {
-          tbody.innerHTML = products.map(product => `
-            <tr>
-              <td>${product.product_code}</td>
-              <td>${product.category}</td>
-              <td>${product.name}</td>
-              <td>${product.supplier}</td>
-              <td>
-                ${product.variants && product.variants.length > 0
-                  ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
-                  : '<span class="text-muted">—</span>'}
-              </td>
-              <td>₹${product.cost_price}</td>
-              <td>${product.margin_percent}%</td>
-              <td>${product.margin_rs}</td>
-              <td>₹${product.selling_price}</td>
-              <td>
-                <a href="/products/${product.id}">
-                  <img src="/api/qr/${product.qr_code}" alt="QR" style="width: 50px; height: 50px;">
-                </a>
-              </td>
-              <td>
-                <a href="/products/${product.id}" class="btn btn-info btn-sm w-100">View</a>
-              </td>
-            </tr>
-          `).join('');
-        }
-
-        document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
-      } catch (error) {
-        console.error(error);
-        document.getElementById('products-table-body').innerHTML = '<tr><td colspan="11" class="text-center text-danger">Error loading products</td></tr>';
-        showToast('Error loading products', 'danger');
       }
-    }
 
-    document.addEventListener('DOMContentLoaded', function() {
-      fetchProducts();
+      function populateCategoryDropdown() {
+        const categories = [...new Set(allProducts.map(p => p.category))].sort();
+        const select = document.getElementById('category-filter');
+        select.innerHTML = '<option value="">All Categories</option>' +
+          categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+      }
 
-      const socket = io();
-      socket.on('products-updated', fetchProducts);
+      // ========== EVENT LISTENERS FOR FILTERS ==========
+      document.getElementById('search-input').addEventListener('input', applyFilters);
+      document.getElementById('category-filter').addEventListener('change', applyFilters);
+      document.getElementById('size-filter').addEventListener('change', applyFilters);
+      document.getElementById('clear-filters').addEventListener('click', () => {
+        document.getElementById('search-input').value = '';
+        document.getElementById('category-filter').value = '';
+        document.getElementById('size-filter').value = '';
+        applyFilters();
+      });
 
-      document.getElementById('refresh-now').addEventListener('click', fetchProducts);
-    });
-  </script>
+      // ========== EXISTING INITIALISATION (updated to use new fetch) ==========
+      document.addEventListener('DOMContentLoaded', function() {
+        fetchProducts();
+
+        const socket = io();
+        socket.on('products-updated', fetchProducts);
+
+        document.getElementById('refresh-now').addEventListener('click', fetchProducts);
+      });
+    </script>
 </body>
 </html>
