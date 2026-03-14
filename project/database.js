@@ -19,6 +19,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
+// Check and add has_sizes column to products table
+db.all("PRAGMA table_info(products)", (err, columns) => {
+  if (err) {
+    console.error("Error checking schema:", err);
+    return;
+  }
+  const hasHasSizes = columns.some(col => col.name === 'has_sizes');
+  if (!hasHasSizes) {
+    db.run("ALTER TABLE products ADD COLUMN has_sizes INTEGER DEFAULT 1", (err) => {
+      if (err) console.error("Failed to add has_sizes column:", err);
+      else console.log("Added has_sizes column to products");
+    });
+  }
+});
+
 // Initialize tables
 db.serialize(() => {
   db.run(`

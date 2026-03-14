@@ -84,15 +84,23 @@
           <tr><th>Name</th><td><%= product.name %></td></tr>
           <tr><th>Supplier</th><td><%= product.supplier %></td></tr>
           <tr><th>Sizes & Stock</th>
-            <td id="product-stock">
-              <% if (product.variants && product.variants.length > 0) { %>
-                <% product.variants.forEach(function(v) { %>
-                  <span><%= v.size %>: <%= v.stock %></span><br>
-                <% }); %>
-              <% } else { %>
-                <span class="text-muted">—</span>
-              <% } %>
-            </td>
+              <td id="product-stock">
+                <% if (product.has_sizes) { %>
+                  <% if (product.variants && product.variants.length > 0) { %>
+                    <% product.variants.forEach(function(v) { %>
+                      <span><%= v.size %>: <%= v.stock %></span><br>
+                    <% }); %>
+                  <% } else { %>
+                    <span class="text-muted">—</span>
+                  <% } %>
+                <% } else { %>
+                  <% if (product.variants && product.variants[0]) { %>
+                    <span>Stock: <%= product.variants[0].stock %></span>
+                  <% } else { %>
+                    <span class="text-muted">—</span>
+                  <% } %>
+                <% } %>
+              </td>
           </tr>
           <tr><th>Cost Price</th><td id="product-cost">₹<%= product.cost_price %></td></tr>
           <tr><th>Margin (%)</th><td><%= product.margin_percent %></td></tr>

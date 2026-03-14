@@ -367,38 +367,40 @@
       }
 
       function renderTable(products) {
-        const tbody = document.getElementById('products-table-body');
-        if (products.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="11" class="text-center">No products match your filters.</td></tr>';
-          return;
+          const tbody = document.getElementById('products-table-body');
+          if (products.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="11" class="text-center">No products match your filters.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = products.map(product => `
+            <tr>
+              <td>${product.product_code}</td>
+              <td>${product.category}</td>
+              <td>${product.name}</td>
+              <td>${product.supplier}</td>
+              <td>
+                ${product.has_sizes
+                  ? (product.variants && product.variants.length > 0
+                      ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
+                      : '<span class="text-muted">—</span>')
+                  : (product.variants && product.variants[0] ? `Stock: ${product.variants[0].stock}` : '<span class="text-muted">0</span>')}
+              </td>
+              <td>₹${product.cost_price}</td>
+              <td>${product.margin_percent}%</td>
+              <td>${product.margin_rs}</td>
+              <td>₹${product.selling_price}</td>
+              <td>
+                <a href="/products/${product.id}">
+                  <img src="/api/qr/${product.qr_code}" alt="QR" style="width: 50px; height: 50px;">
+                </a>
+              </td>
+              <td>
+                <a href="/products/${product.id}" class="btn btn-info btn-sm w-100">View</a>
+              </td>
+            </tr>
+          `).join('');
+          document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
         }
-        tbody.innerHTML = products.map(product => `
-          <tr>
-            <td>${product.product_code}</td>
-            <td>${product.category}</td>
-            <td>${product.name}</td>
-            <td>${product.supplier}</td>
-            <td>
-              ${product.variants && product.variants.length > 0
-                ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
-                : '<span class="text-muted">—</span>'}
-            </td>
-            <td>₹${product.cost_price}</td>
-            <td>${product.margin_percent}%</td>
-            <td>${product.margin_rs}</td>
-            <td>₹${product.selling_price}</td>
-            <td>
-              <a href="/products/${product.id}">
-                <img src="/api/qr/${product.qr_code}" alt="QR" style="width: 50px; height: 50px;">
-              </a>
-            </td>
-            <td>
-              <a href="/products/${product.id}" class="btn btn-info btn-sm w-100">View</a>
-            </td>
-          </tr>
-        `).join('');
-        document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
-      }
 
       function updateTotals(products) {
         let totalCost = 0, totalSelling = 0;

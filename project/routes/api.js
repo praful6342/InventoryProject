@@ -26,7 +26,11 @@ router.get('/products', (req, res) => {
         variantsByProduct[v.product_id].push({ size: v.size, stock: v.stock });
       });
 
-      const result = products.map(p => ({ ...p, variants: variantsByProduct[p.id] || [] }));
+      const result = products.map(p => ({
+        ...p,
+        has_sizes: p.has_sizes,
+        variants: variantsByProduct[p.id] || []
+      }));
       res.json(result);
     });
   });
@@ -49,6 +53,7 @@ router.get('/products/:id', (req, res) => {
           return res.status(500).json({ error: 'Database error' });
         }
         product.variants = variants;
+        product.has_sizes = product.has_sizes;
         res.json(product);
       });
       return;

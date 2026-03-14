@@ -67,53 +67,63 @@
         <label for="supplier" class="form-label">Supplier</label>
         <input type="text" class="form-control" id="supplier" name="supplier" value="<%= product.supplier %>">
       </div>
-      <div class="mb-3">
-        <label class="form-label">Sizes & Stock</label>
-        <div id="sizes-container">
-          <% if (product.variants && product.variants.length > 0) { %>
-            <% product.variants.forEach(function(v, idx) { %>
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="hasSizes" name="has_sizes" value="on" <%= product.has_sizes ? 'checked' : '' %>>
+          <label class="form-check-label" for="hasSizes">This product has sizes (e.g., S, M, L, XL, XXL)</label>
+        </div>
+        <div id="sizes-section" class="mb-3" style="display: <%= product.has_sizes ? 'block' : 'none' %>;">
+          <label class="form-label">Sizes & Stock</label>
+          <div id="sizes-container">
+            <% if (product.has_sizes && product.variants && product.variants.length > 0) { %>
+              <% product.variants.forEach(function(v, idx) { %>
+                <% if (v.size !== 'ONESIZE') { %>
+                <div class="row mb-2 size-row">
+                  <div class="col-md-5">
+                    <select class="form-control" name="sizes[<%= idx %>][size]">
+                      <option value="">Select Size</option>
+                      <option value="S" <%= v.size === 'S' ? 'selected' : '' %>>S</option>
+                      <option value="M" <%= v.size === 'M' ? 'selected' : '' %>>M</option>
+                      <option value="L" <%= v.size === 'L' ? 'selected' : '' %>>L</option>
+                      <option value="XL" <%= v.size === 'XL' ? 'selected' : '' %>>XL</option>
+                      <option value="XXL" <%= v.size === 'XXL' ? 'selected' : '' %>>XXL</option>
+                    </select>
+                  </div>
+                  <div class="col-md-5">
+                    <input type="number" class="form-control" name="sizes[<%= idx %>][stock]" value="<%= v.stock %>" placeholder="Quantity">
+                  </div>
+                  <div class="col-md-2">
+                    <button type="button" class="btn btn-danger remove-size-row" <%= product.variants.length === 1 ? 'style=\"display:none;\"' : '' %>>Remove</button>
+                  </div>
+                </div>
+                <% } %>
+              <% }); %>
+            <% } else { %>
               <div class="row mb-2 size-row">
                 <div class="col-md-5">
-                  <select class="form-control" name="sizes[<%= idx %>][size]">
+                  <select class="form-control" name="sizes[0][size]">
                     <option value="">Select Size</option>
-                    <option value="S" <%= v.size === 'S' ? 'selected' : '' %>>S</option>
-                    <option value="M" <%= v.size === 'M' ? 'selected' : '' %>>M</option>
-                    <option value="L" <%= v.size === 'L' ? 'selected' : '' %>>L</option>
-                    <option value="XL" <%= v.size === 'XL' ? 'selected' : '' %>>XL</option>
-                    <option value="XXL" <%= v.size === 'XXL' ? 'selected' : '' %>>XXL</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
                   </select>
                 </div>
                 <div class="col-md-5">
-                  <input type="number" class="form-control" name="sizes[<%= idx %>][stock]" value="<%= v.stock %>" placeholder="Quantity">
+                  <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
                 </div>
                 <div class="col-md-2">
-                  <button type="button" class="btn btn-danger remove-size-row" <%= product.variants.length === 1 ? 'style="display:none;"' : '' %>>Remove</button>
+                  <button type="button" class="btn btn-danger remove-size-row" style="display:none;">Remove</button>
                 </div>
               </div>
-            <% }); %>
-          <% } else { %>
-            <div class="row mb-2 size-row">
-              <div class="col-md-5">
-                <select class="form-control" name="sizes[0][size]">
-                  <option value="">Select Size</option>
-                  <option value="S">S</option>
-                  <option value="M">M</option>
-                  <option value="L">L</option>
-                  <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                </select>
-              </div>
-              <div class="col-md-5">
-                <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
-              </div>
-              <div class="col-md-2">
-                <button type="button" class="btn btn-danger remove-size-row" style="display:none;">Remove</button>
-              </div>
-            </div>
-          <% } %>
+            <% } %>
+          </div>
+          <button type="button" class="btn btn-primary" id="add-size-row">Add Size</button>
         </div>
-        <button type="button" class="btn btn-primary" id="add-size-row">Add Size</button>
-      </div>
+        <div id="single-stock-section" class="mb-3" style="display: <%= product.has_sizes ? 'none' : 'block' %>;">
+          <label for="stock" class="form-label">Stock (units)</label>
+          <input type="number" class="form-control" id="stock" name="stock" min="0" value="<%= !product.has_sizes && product.variants && product.variants[0] ? product.variants[0].stock : '' %>">
+        </div>
       <div class="mb-3">
         <label for="cost_price" class="form-label">Cost Price (₹)</label>
         <input type="number" step="0.01" class="form-control" id="cost_price" name="cost_price" value="<%= product.cost_price %>">
@@ -138,46 +148,58 @@
   <%- include('partials/footer') %>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    let sizeIndex = parseInt('<%= product.variants && product.variants.length ? product.variants.length : 1 %>', 10);
-    document.getElementById('add-size-row').addEventListener('click', function() {
-      const container = document.getElementById('sizes-container');
-      const newRow = document.createElement('div');
-      newRow.className = 'row mb-2 size-row';
-      newRow.innerHTML = `
-        <div class="col-md-5">
-          <select class="form-control" name="sizes[${sizeIndex}][size]">
-            <option value="">Select Size</option>
-            <option value="S">S</option>
-            <option value="M">M</option>
-            <option value="L">L</option>
-            <option value="XL">XL</option>
-            <option value="XXL">XXL</option>
-          </select>
-        </div>
-        <div class="col-md-5">
-          <input type="number" class="form-control" name="sizes[${sizeIndex}][stock]" placeholder="Quantity">
-        </div>
-        <div class="col-md-2">
-          <button type="button" class="btn btn-danger remove-size-row">Remove</button>
-        </div>
-      `;
-      container.appendChild(newRow);
-      updateRemoveButtons();
-      sizeIndex++;
-    });
-    function updateRemoveButtons() {
-      const rows = document.querySelectorAll('.size-row');
-      rows.forEach((row, idx) => {
-        const btn = row.querySelector('.remove-size-row');
-        if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
-        btn && btn.addEventListener('click', function() {
-          row.remove();
-          updateRemoveButtons();
-        });
+    <script>
+      let sizeIndex = parseInt('<%= product.variants && product.variants.length ? product.variants.length : 1 %>', 10);
+      document.getElementById('add-size-row').addEventListener('click', function() {
+        const container = document.getElementById('sizes-container');
+        const newRow = document.createElement('div');
+        newRow.className = 'row mb-2 size-row';
+        newRow.innerHTML = `
+          <div class="col-md-5">
+            <select class="form-control" name="sizes[${sizeIndex}][size]">
+              <option value="">Select Size</option>
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <input type="number" class="form-control" name="sizes[${sizeIndex}][stock]" placeholder="Quantity">
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="btn btn-danger remove-size-row">Remove</button>
+          </div>
+        `;
+        container.appendChild(newRow);
+        updateRemoveButtons();
+        sizeIndex++;
       });
-    }
-    updateRemoveButtons();
+      function updateRemoveButtons() {
+        const rows = document.querySelectorAll('.size-row');
+        rows.forEach((row, idx) => {
+          const btn = row.querySelector('.remove-size-row');
+          if (btn) btn.style.display = rows.length > 1 ? '' : 'none';
+          btn && btn.addEventListener('click', function() {
+            row.remove();
+            updateRemoveButtons();
+          });
+        });
+      }
+      updateRemoveButtons();
+
+      // Toggle sizes/stock section
+      document.getElementById('hasSizes').addEventListener('change', function(e) {
+        if (e.target.checked) {
+          document.getElementById('sizes-section').style.display = 'block';
+          document.getElementById('single-stock-section').style.display = 'none';
+        } else {
+          document.getElementById('sizes-section').style.display = 'none';
+          document.getElementById('single-stock-section').style.display = 'block';
+        }
+      });
+    </script>
   </script>
 </body>
 </html>
