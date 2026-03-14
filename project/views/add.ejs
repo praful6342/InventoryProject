@@ -100,30 +100,7 @@
           <label for="stock" class="form-label">Stock (units)</label>
           <input type="number" class="form-control" id="stock" name="stock" min="0">
         </div>
-      <div class="mb-3">
-        <label class="form-label">Sizes & Stock</label>
-        <div id="sizes-container">
-          <div class="row mb-2 size-row">
-            <div class="col-md-5">
-              <select class="form-control" name="sizes[0][size]">
-                <option value="">Select Size</option>
-                <option value="S">S</option>
-                <option value="M">M</option>
-                <option value="L">L</option>
-                <option value="XL">XL</option>
-                <option value="XXL">XXL</option>
-              </select>
-            </div>
-            <div class="col-md-5">
-              <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
-            </div>
-            <div class="col-md-2">
-              <button type="button" class="btn btn-danger remove-size-row" style="display:none;">Remove</button>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="btn btn-primary" id="add-size-row">Add Size</button>
-      </div>
+      // ...existing code...
       <div class="mb-3">
         <label for="cost_price" class="form-label">Cost Price (₹)</label>
         <input type="number" step="0.01" class="form-control" id="cost_price" name="cost_price">

@@ -114,150 +114,150 @@
       const scannerSection = document.getElementById('scanner-section');
 
       function fetchScannedProductAndDisplay() {
-          fetch('/scan/scan-product', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_code: lastScannedId })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (!data.product) {
-              productInfoDiv.innerHTML = '<p class="text-danger">Product not found.</p>';
-              return;
-            }
-            const product = data.product;
-            let html = `<div class="mb-2 p-2 border rounded">
-              <strong>${product.name}</strong><br>
-              <span><b>Code:</b> ${product.product_code}</span><br>
-              <span><b>Category:</b> ${product.category || '-'}</span><br>
-              <span><b>Selling Price:</b> ₹${product.selling_price}</span><br>
-              <hr>`;
-            if (product.has_sizes) {
-              // Build size options
-              let sizeOptions = '';
-              if (product.variants && product.variants.length > 0) {
-                product.variants.forEach(v => {
-                  if (v.stock > 0) {
-                    sizeOptions += `<option value="${v.size}" data-stock="${v.stock}">${v.size} (Stock: ${v.stock})</option>`;
-                  }
-                });
-              }
-              if (sizeOptions === '') {
-                sizeOptions = '<option value="" disabled>No sizes in stock</option>';
-              }
-              html += `<div class="row g-2">
-                <div class="col-md-5">
-                  <select id="size-select" class="form-select form-select-sm">
-                    <option value="">Select Size</option>
-                    ${sizeOptions}
-                  </select>
-                </div>
-                <div class="col-md-4">
-                  <input type="number" id="cart-quantity" class="form-control form-control-sm" value="1" min="1">
-                </div>
-                <div class="col-md-3">
-                  <button class="btn btn-success btn-sm w-100" id="add-to-cart">Add to Cart</button>
-                </div>
-              </div>`;
-            } else {
-              const stock = product.variants && product.variants[0] ? product.variants[0].stock : 0;
-              html += `<div class="row g-2">
-                <div class="col-md-8">
-                  <input type="number" id="cart-quantity" class="form-control form-control-sm" value="1" min="1" max="${stock}">
-                  <small>Available stock: ${stock}</small>
-                </div>
-                <div class="col-md-4">
-                  <button class="btn btn-success btn-sm w-100" id="add-to-cart">Add to Cart</button>
-                </div>
-              </div>`;
-            }
-            html += `<hr>
-              <div class="d-flex gap-2 mt-2">
-                <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary">View Details</a>
-                <a href="/products/edit/${product.id}" class="btn btn-sm btn-warning">Edit</a>
-                <button class="btn btn-sm btn-danger delete-scanned-product">Delete</button>
-              </div>
-            </div>`;
-            productInfoDiv.innerHTML = html;
-
-            // Attach add-to-cart handler with loading and toast
-            const addBtn = document.getElementById('add-to-cart');
-            addBtn.addEventListener('click', function() {
-              let size = 'ONESIZE';
-              if (product.has_sizes) {
-                const sizeSelect = document.getElementById('size-select');
-                size = sizeSelect.value;
-                if (!size) {
-                  showToast('Please select a size', 'warning');
-                  return;
-                }
-              }
-              const quantity = parseInt(document.getElementById('cart-quantity').value);
-              // ...existing add-to-cart logic...
-            });
-            const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
-            const maxStock = parseInt(selectedOption.dataset.stock);
-            if (quantity < 1 || quantity > maxStock) {
-              showToast(`Quantity must be between 1 and ${maxStock}`, 'warning');
-              return;
-            }
-            setLoading(addBtn, true);
-            fetch('/sale/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ productId: product.id, size: size, quantity: quantity })
-            })
-            .then(res => res.json())
-            .then(data => {
-              if (data.error) {
-                showToast(data.error, 'danger');
-              } else {
-                showToast('Added to cart!', 'success');
-              }
-            })
-            .catch(err => {
-              console.error(err);
-              showToast('Network error', 'danger');
-            })
-            .finally(() => setLoading(addBtn, false));
-          });
-
-          // Attach delete handler with toast
-          productInfoDiv.querySelector('.delete-scanned-product').addEventListener('click', function() {
-            if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-              const deleteBtn = this;
-              setLoading(deleteBtn, true);
-              fetch(`/products/delete/${product.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-              })
-              .then(response => {
-                if (response.ok) {
-                  showToast('Product deleted successfully', 'success');
-                  resultDiv.innerText = '—';
-                  productInfoDiv.innerHTML = '<p class="text-muted">Scan a QR code to see product details.</p>';
-                  lastScannedId = null;
-                  scanLocked = false;
-                  if (scannerSection) {
-                    scannerSection.style.display = '';
-                  }
-                  startScanner();
-                } else {
-                  showToast('Error deleting product', 'danger');
-                }
-              })
-              .catch(err => {
-                console.error(err);
-                showToast('Network error', 'danger');
-              })
-              .finally(() => setLoading(deleteBtn, false));
+    fetch('/scan/scan-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_code: lastScannedId })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.product) {
+        productInfoDiv.innerHTML = '<p class="text-danger">Product not found.</p>';
+        return;
+      }
+      const product = data.product;
+      let html = `<div class="mb-2 p-2 border rounded">
+        <strong>${product.name}</strong><br>
+        <span><b>Code:</b> ${product.product_code}</span><br>
+        <span><b>Category:</b> ${product.category || '-'}</span><br>
+        <span><b>Selling Price:</b> ₹${product.selling_price}</span><br>
+        <hr>`;
+      if (product.has_sizes) {
+        let sizeOptions = '';
+        if (product.variants && product.variants.length > 0) {
+          product.variants.forEach(v => {
+            if (v.stock > 0) {
+              sizeOptions += `<option value="${v.size}" data-stock="${v.stock}">${v.size} (Stock: ${v.stock})</option>`;
             }
           });
+        }
+        if (sizeOptions === '') {
+          sizeOptions = '<option value="" disabled>No sizes in stock</option>';
+        }
+        html += `<div class="row g-2">
+          <div class="col-md-5">
+            <select id="size-select" class="form-select form-select-sm">
+              <option value="">Select Size</option>
+              ${sizeOptions}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input type="number" id="cart-quantity" class="form-control form-control-sm" value="1" min="1">
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-success btn-sm w-100" id="add-to-cart">Add to Cart</button>
+          </div>
+        </div>`;
+      } else {
+        const stock = product.variants && product.variants[0] ? product.variants[0].stock : 0;
+        html += `<div class="row g-2">
+          <div class="col-md-8">
+            <input type="number" id="cart-quantity" class="form-control form-control-sm" value="1" min="1" max="${stock}">
+            <small>Available stock: ${stock}</small>
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-success btn-sm w-100" id="add-to-cart">Add to Cart</button>
+          </div>
+        </div>`;
+      }
+      html += `<hr>
+        <div class="d-flex gap-2 mt-2">
+          <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary">View Details</a>
+          <a href="/products/edit/${product.id}" class="btn btn-sm btn-warning">Edit</a>
+          <button class="btn btn-sm btn-danger delete-scanned-product">Delete</button>
+        </div>
+      </div>`;
+      productInfoDiv.innerHTML = html;
 
-          resultsDiv.innerHTML = '<div class="alert alert-success">Product loaded</div>';
-          if (scannerSection) {
-            scannerSection.style.display = 'none';
+      // Attach add-to-cart handler
+      document.getElementById('add-to-cart').addEventListener('click', function() {
+        let size = 'ONESIZE';
+        let maxStock = 0;
+        if (product.has_sizes) {
+          const sizeSelect = document.getElementById('size-select');
+          size = sizeSelect.value;
+          if (!size) {
+            showToast('Please select a size', 'warning');
+            return;
           }
+          maxStock = parseInt(sizeSelect.options[sizeSelect.selectedIndex].dataset.stock);
+        } else {
+          maxStock = product.variants[0].stock;
+        }
+        const quantity = parseInt(document.getElementById('cart-quantity').value);
+        if (quantity < 1 || quantity > maxStock) {
+          showToast(`Quantity must be between 1 and ${maxStock}`, 'warning');
+          return;
+        }
+        setLoading(this, true);
+        fetch('/sale/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: product.id, size: size, quantity: quantity })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            showToast(data.error, 'danger');
+          } else {
+            showToast('Added to cart!', 'success');
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showToast('Network error', 'danger');
+        })
+        .finally(() => setLoading(this, false));
+      });
+
+      // Attach delete handler
+      document.querySelector('.delete-scanned-product').addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+          setLoading(this, true);
+          fetch(`/products/delete/${product.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          })
+          .then(response => {
+            if (response.ok) {
+              showToast('Product deleted successfully', 'success');
+              resultDiv.innerText = '—';
+              productInfoDiv.innerHTML = '<p class="text-muted">Scan a QR code to see product details.</p>';
+              lastScannedId = null;
+              scanLocked = false;
+              if (scannerSection) scannerSection.style.display = '';
+              startScanner();
+            } else {
+              showToast('Error deleting product', 'danger');
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            showToast('Network error', 'danger');
+          })
+          .finally(() => setLoading(this, false));
+        }
+      });
+
+      resultsDiv.innerHTML = '<div class="alert alert-success">Product loaded</div>';
+      if (scannerSection) scannerSection.style.display = 'none';
+    })
+    .catch(error => {
+      console.error(error);
+      resultsDiv.innerHTML = '<div class="alert alert-danger">Error fetching product</div>';
+      productInfoDiv.innerHTML = '<p class="text-danger">Error fetching product</p>';
+    });
+  }
         })
         .catch(error => {
           console.error(error);
