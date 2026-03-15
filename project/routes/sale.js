@@ -106,23 +106,20 @@ router.get('/checkout', (req, res) => {
   if (!req.session.cart || req.session.cart.length === 0) {
     return res.redirect('/sale/cart');
   }
-  res.render('checkout', { cart: req.session.cart });
+  // Calculate total from cart
+  const total = req.session.cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
+  res.render('checkout', { cart: req.session.cart, total });
 });
 
 // POST /sale/checkout – process sale
 router.post('/checkout', (req, res) => {
-  const { customerName, customerPhone, customerEmail } = req.body;
+  const { customerName, customerPhone, customerEmail, discount_type, discount_value } = req.body;
   const cart = req.session.cart;
   if (!cart || cart.length === 0) {
     return res.redirect('/sale/cart');
   }
 
-  // Calculate totals
-  let totalAmount = 0;
-  let totalProfit = 0;
-  cart.forEach(item => {
-    totalAmount += item.selling_price * item.quantity;
-  });
+  const preDiscountTotal = cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
 
   // Start transaction
   db.serialize(() => {
@@ -140,17 +137,15 @@ router.post('/checkout', (req, res) => {
             return res.status(500).send('Error creating customer');
           }
           customerId = this.lastID;
-          proceedWithSale(customerId);
+          proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value);
         }
       );
     } else {
-      proceedWithSale(null);
+      proceedWithSale(null, preDiscountTotal, discount_type, discount_value);
     }
 
-    function proceedWithSale(customerId) {
+    function proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value) {
       const billNumber = generateBillNumber();
-
-      // Get cost_price for each product to calculate profit
       let profitTotal = 0;
       let itemsProcessed = 0;
       const items = [];
@@ -174,11 +169,29 @@ router.post('/checkout', (req, res) => {
 
           itemsProcessed++;
           if (itemsProcessed === cart.length) {
+            // Apply discount
+            let discountAmount = 0;
+            let finalTotal = preDiscountTotal;
+            if (discount_type && discount_value && parseFloat(discount_value) > 0) {
+              const discVal = parseFloat(discount_value);
+              if (discount_type === 'percentage' && discVal <= 100) {
+                discountAmount = preDiscountTotal * (discVal / 100);
+              } else if (discount_type === 'fixed' && discVal <= preDiscountTotal) {
+                discountAmount = discVal;
+              } else {
+                // Invalid discount – rollback and return error
+                db.run('ROLLBACK');
+                return res.status(400).send('Invalid discount value');
+              }
+              finalTotal -= discountAmount;
+              profitTotal -= discountAmount;
+            }
+
             // Create sale
             db.run(
-              `INSERT INTO sales (customer_id, total_amount, profit, bill_number)
-               VALUES (?, ?, ?, ?)`,
-              [customerId, totalAmount, profitTotal, billNumber],
+              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount],
               function(err) {
                 if (err) {
                   console.error('Sale insert error:', err);
@@ -202,7 +215,7 @@ router.post('/checkout', (req, res) => {
                       }
                       itemsInserted++;
                       if (itemsInserted === items.length) {
-                        // All items inserted, now update stock
+                        // Update stock
                         updateStock(saleId);
                       }
                     }

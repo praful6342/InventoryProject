@@ -34,6 +34,36 @@ db.all("PRAGMA table_info(products)", (err, columns) => {
   }
 });
 
+// Check and add discount columns to sales table
+db.all("PRAGMA table_info(sales)", (err, columns) => {
+  if (err) {
+    console.error("Error checking sales schema:", err);
+    return;
+  }
+  const hasDiscountType = columns.some(col => col.name === 'discount_type');
+  const hasDiscountValue = columns.some(col => col.name === 'discount_value');
+  const hasDiscountAmount = columns.some(col => col.name === 'discount_amount');
+  
+  if (!hasDiscountType) {
+    db.run("ALTER TABLE sales ADD COLUMN discount_type TEXT", (err) => {
+      if (err) console.error("Failed to add discount_type column:", err);
+      else console.log("Added discount_type column to sales");
+    });
+  }
+  if (!hasDiscountValue) {
+    db.run("ALTER TABLE sales ADD COLUMN discount_value REAL", (err) => {
+      if (err) console.error("Failed to add discount_value column:", err);
+      else console.log("Added discount_value column to sales");
+    });
+  }
+  if (!hasDiscountAmount) {
+    db.run("ALTER TABLE sales ADD COLUMN discount_amount REAL DEFAULT 0", (err) => {
+      if (err) console.error("Failed to add discount_amount column:", err);
+      else console.log("Added discount_amount column to sales");
+    });
+  }
+});
+
 // Initialize tables
 db.serialize(() => {
   db.run(`

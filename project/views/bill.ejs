@@ -44,10 +44,13 @@
     .total-row {
       font-weight: bold;
     }
+    .discount-row {
+      color: #dc3545;
+    }
   </style>
 </head>
 <body>
-  <!-- Navigation Bar (no active highlight needed, but included for consistency) -->
+  <!-- Navigation Bar -->
   <nav class="navbar navbar-light bg-light mb-4">
     <div class="container-fluid">
       <a class="navbar-brand fw-bold text-primary" href="/">InventoryApp</a>
@@ -98,6 +101,15 @@
             <td>₹<%= (item.price_at_sale * item.quantity).toFixed(2) %></td>
           </tr>
           <% }) %>
+
+          <!-- Discount row (if discount was applied) -->
+          <% if (sale.discount_amount && sale.discount_amount > 0) { %>
+          <tr class="discount-row">
+            <td colspan="3" style="text-align: right;">Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</td>
+            <td>-₹<%= sale.discount_amount.toFixed(2) %></td>
+          </tr>
+          <% } %>
+
           <tr class="total-row">
             <td colspan="3" style="text-align: right;">Total Amount:</td>
             <td>₹<%= sale.total_amount.toFixed(2) %></td>
