@@ -73,7 +73,7 @@
 
       <div class="bill-details">
         <p><strong>Bill Number:</strong> <%= sale.bill_number %></p>
-        <p><strong>Date:</strong> <%= new Date(sale.created_at).toLocaleString() %></p>
+        <p><strong>Date:</strong> <%= new Date(sale.created_at + 'Z').toLocaleString() %></p>
         <% if (sale.customer_name) { %>
           <p><strong>Customer:</strong> <%= sale.customer_name %></p>
           <% if (sale.customer_phone) { %><p><strong>Phone:</strong> <%= sale.customer_phone %></p><% } %>
