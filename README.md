@@ -19,11 +19,13 @@ A full-featured inventory and sales management system for clothing stores, with 
   - Session‑based shopping cart (persists across requests).  
   - Add/update/remove items before checkout.  
   - Real‑time stock validation during cart operations.  
+  - **Discounts:** Apply optional discounts during checkout – choose between **percentage (%)** or **fixed amount (₹)**. The total updates live as you type.  
   - Checkout with optional customer information (name, phone, email).  
-  - Generates unique bill numbers and records sales with profit calculation.
+  - Generates unique bill numbers and records sales with profit calculation (discounts are subtracted from both total and profit).
 
 - **Billing**  
   - Printable bill page with customer details, itemised list, and total amount.  
+  - If a discount was applied, the bill displays the discount type, value, and deducted amount before the final total.  
   - Stores sale transactions in database with profit tracking.
 
 - **Dashboard**  
