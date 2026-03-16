@@ -113,7 +113,7 @@ router.get('/checkout', (req, res) => {
 
 // POST /sale/checkout – process sale
 router.post('/checkout', (req, res) => {
-  const { customerName, customerPhone, customerEmail, discount_type, discount_value } = req.body;
+  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date } = req.body;
   const cart = req.session.cart;
   if (!cart || cart.length === 0) {
     return res.redirect('/sale/cart');
@@ -129,22 +129,22 @@ router.post('/checkout', (req, res) => {
     if (customerName) {
       db.run(
         'INSERT INTO customers (name, phone, email) VALUES (?, ?, ?)',
-        [customerName, customerPhone || null, customerEmail || null],
-        function(err) {
-          if (err) {
-            console.error('Customer insert error:', err);
-            db.run('ROLLBACK');
-            return res.status(500).send('Error creating customer');
-          }
-          customerId = this.lastID;
-          proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value);
-        }
+             [customerName, customerPhone || null, customerEmail || null],
+             function(err) {
+               if (err) {
+                 console.error('Customer insert error:', err);
+                 db.run('ROLLBACK');
+                 return res.status(500).send('Error creating customer');
+               }
+               customerId = this.lastID;
+               proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value, sale_date);
+             }
       );
     } else {
-      proceedWithSale(null, preDiscountTotal, discount_type, discount_value);
+      proceedWithSale(null, preDiscountTotal, discount_type, discount_value, sale_date);
     }
 
-    function proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value) {
+    function proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value, sale_date) {
       const billNumber = generateBillNumber();
       let profitTotal = 0;
       let itemsProcessed = 0;
@@ -187,41 +187,41 @@ router.post('/checkout', (req, res) => {
               profitTotal -= discountAmount;
             }
 
-            // Create sale
+            // Create sale (including sale_date)
             db.run(
-              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount)
-               VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount],
-              function(err) {
-                if (err) {
-                  console.error('Sale insert error:', err);
-                  db.run('ROLLBACK');
-                  return res.status(500).send('Error creating sale');
-                }
-                const saleId = this.lastID;
+              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date || null],
+                   function(err) {
+                     if (err) {
+                       console.error('Sale insert error:', err);
+                       db.run('ROLLBACK');
+                       return res.status(500).send('Error creating sale');
+                     }
+                     const saleId = this.lastID;
 
-                // Insert sale items
-                let itemsInserted = 0;
-                items.forEach(item => {
-                  db.run(
-                    `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item)
-                     VALUES (?, ?, ?, ?, ?)`,
-                    [saleId, item.product_id, item.quantity, item.price_at_sale, item.profit_on_item],
-                    function(err) {
-                      if (err) {
-                        console.error('Sale item insert error:', err);
-                        db.run('ROLLBACK');
-                        return res.status(500).send('Error creating sale items');
-                      }
-                      itemsInserted++;
-                      if (itemsInserted === items.length) {
-                        // Update stock
-                        updateStock(saleId);
-                      }
-                    }
-                  );
-                });
-              }
+                     // Insert sale items
+                     let itemsInserted = 0;
+                     items.forEach(item => {
+                       db.run(
+                         `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item)
+                         VALUES (?, ?, ?, ?, ?)`,
+                              [saleId, item.product_id, item.quantity, item.price_at_sale, item.profit_on_item],
+                              function(err) {
+                                if (err) {
+                                  console.error('Sale item insert error:', err);
+                                  db.run('ROLLBACK');
+                                  return res.status(500).send('Error creating sale items');
+                                }
+                                itemsInserted++;
+                                if (itemsInserted === items.length) {
+                                  // Update stock
+                                  updateStock(saleId);
+                                }
+                              }
+                       );
+                     });
+                   }
             );
           }
         });

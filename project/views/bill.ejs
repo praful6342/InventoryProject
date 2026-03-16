@@ -63,7 +63,7 @@
       </div>
     </div>
   </nav>
-  
+
   <div class="container mt-4">
     <div class="bill-container">
       <div class="bill-header">
@@ -73,7 +73,13 @@
 
       <div class="bill-details">
         <p><strong>Bill Number:</strong> <%= sale.bill_number %></p>
-        <p><strong>Date:</strong> <%= new Date(sale.created_at + 'Z').toLocaleString() %></p>
+        <p><strong>Date:</strong>
+          <% if (sale.sale_date) { %>
+            <%= new Date(sale.sale_date + 'T12:00:00').toLocaleDateString() %>
+          <% } else { %>
+            <%= new Date(sale.created_at + 'Z').toLocaleString() %>
+          <% } %>
+        </p>
         <% if (sale.customer_name) { %>
           <p><strong>Customer:</strong> <%= sale.customer_name %></p>
           <% if (sale.customer_phone) { %><p><strong>Phone:</strong> <%= sale.customer_phone %></p><% } %>

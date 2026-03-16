@@ -62,6 +62,13 @@
               <input type="email" class="form-control" id="customerEmail" name="customerEmail">
             </div>
 
+            <!-- Sale Date (Optional) -->
+            <div class="mb-3">
+              <label for="saleDate" class="form-label">Sale Date (Optional)</label>
+              <input type="date" class="form-control" id="saleDate" name="sale_date">
+              <small class="text-muted">If left blank, today's date and time will be used.</small>
+            </div>
+
             <!-- Discount Section -->
             <div class="card p-4 mt-3">
               <h4 class="mb-3">Apply Discount (Optional)</h4>
@@ -125,7 +132,7 @@
       const type = document.querySelector('input[name="discount_type"]:checked')?.value;
       const val = parseFloat(discountValueInput.value) || 0;
       let discounted = originalTotal;
-      
+
       if (type === 'percentage' && val >= 0 && val <= 100) {
         discounted = originalTotal * (1 - val / 100);
       } else if (type === 'fixed' && val >= 0 && val <= originalTotal) {

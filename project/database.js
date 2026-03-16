@@ -43,7 +43,7 @@ db.all("PRAGMA table_info(sales)", (err, columns) => {
   const hasDiscountType = columns.some(col => col.name === 'discount_type');
   const hasDiscountValue = columns.some(col => col.name === 'discount_value');
   const hasDiscountAmount = columns.some(col => col.name === 'discount_amount');
-  
+
   if (!hasDiscountType) {
     db.run("ALTER TABLE sales ADD COLUMN discount_type TEXT", (err) => {
       if (err) console.error("Failed to add discount_type column:", err);
@@ -64,65 +64,80 @@ db.all("PRAGMA table_info(sales)", (err, columns) => {
   }
 });
 
+// Check and add sale_date column to sales table
+db.all("PRAGMA table_info(sales)", (err, columns) => {
+  if (err) {
+    console.error("Error checking sales schema for sale_date:", err);
+    return;
+  }
+  const hasSaleDate = columns.some(col => col.name === 'sale_date');
+  if (!hasSaleDate) {
+    db.run("ALTER TABLE sales ADD COLUMN sale_date TEXT", (err) => {
+      if (err) console.error("Failed to add sale_date column:", err);
+      else console.log("Added sale_date column to sales");
+    });
+  }
+});
+
 // Initialize tables
 db.serialize(() => {
   db.run(`
-    CREATE TABLE IF NOT EXISTS products (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      product_code TEXT UNIQUE NOT NULL,
-      category TEXT NOT NULL,
-      name TEXT NOT NULL,
-      supplier TEXT NOT NULL,
-      cost_price REAL NOT NULL,
-      margin_percent REAL NOT NULL,
-      margin_rs REAL NOT NULL,
-      selling_price REAL NOT NULL,
-      qr_code TEXT UNIQUE
-    )
+  CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_code TEXT UNIQUE NOT NULL,
+    category TEXT NOT NULL,
+    name TEXT NOT NULL,
+    supplier TEXT NOT NULL,
+    cost_price REAL NOT NULL,
+    margin_percent REAL NOT NULL,
+    margin_rs REAL NOT NULL,
+    selling_price REAL NOT NULL,
+    qr_code TEXT UNIQUE
+  )
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS product_variants (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      product_id INTEGER NOT NULL,
-      size TEXT NOT NULL,
-      stock INTEGER NOT NULL DEFAULT 0,
-      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-    )
+  CREATE TABLE IF NOT EXISTS product_variants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    size TEXT NOT NULL,
+    stock INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  )
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS customers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      phone TEXT,
-      email TEXT
-    )
+  CREATE TABLE IF NOT EXISTS customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    phone TEXT,
+    email TEXT
+  )
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS sales (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      customer_id INTEGER,
-      total_amount REAL NOT NULL,
-      profit REAL NOT NULL,
-      bill_number TEXT UNIQUE,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (customer_id) REFERENCES customers(id)
-    )
+  CREATE TABLE IF NOT EXISTS sales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER,
+    total_amount REAL NOT NULL,
+    profit REAL NOT NULL,
+    bill_number TEXT UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+  )
   `);
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS sale_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      sale_id INTEGER NOT NULL,
-      product_id INTEGER NOT NULL,
-      quantity INTEGER NOT NULL,
-      price_at_sale REAL NOT NULL,
-      profit_on_item REAL NOT NULL,
-      FOREIGN KEY (sale_id) REFERENCES sales(id),
-      FOREIGN KEY (product_id) REFERENCES products(id)
-    )
+  CREATE TABLE IF NOT EXISTS sale_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sale_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
+    price_at_sale REAL NOT NULL,
+    profit_on_item REAL NOT NULL,
+    FOREIGN KEY (sale_id) REFERENCES sales(id),
+                                         FOREIGN KEY (product_id) REFERENCES products(id)
+  )
   `);
 });
 
