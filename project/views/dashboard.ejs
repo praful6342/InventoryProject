@@ -11,13 +11,25 @@
   <script src="/js/app.js" defer></script>
 </head>
 <body>
+  <!-- Navigation Bar (replace with partial if you have created one) -->
+  <nav class="navbar navbar-light bg-light mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold text-primary" href="/">Sales & Inventory App</a>
+      <ul class="navbar-nav d-flex flex-row flex-wrap w-100 justify-content-end">
+          <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
+          <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/sale/cart">Cart</a></li>
+          <li class="nav-item"><a class="nav-link" href="/sale/sales">Sales</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-  <%- include('partials/navbar', { currentPage: 'dashboard' }) %>
-  
   <main class="container">
     <h1 class="dashboard-title mb-4">Today's Dashboard</h1>
-    
-    <!-- Metric cards -->
+
+    <!-- First row: quantities, profit, total sales -->
     <div class="row">
       <div class="col-md-4 mb-4">
         <div class="card text-center">
@@ -38,16 +50,24 @@
       <div class="col-md-4 mb-4">
         <div class="card text-center">
           <div class="card-body">
-            <h5 class="card-title">Current Stock (units)</h5>
-            <p class="display-5 text-primary"><%= stock %></p>
+            <h5 class="card-title">Total Sales Today</h5>
+            <p class="display-5 text-primary">₹<%= totalSales %></p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Inventory value cards -->
-    <div class="row mt-4">
-      <div class="col-md-6 mb-4">
+    <!-- Second row: stock and inventory values -->
+    <div class="row">
+      <div class="col-md-4 mb-4">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title">Current Stock (units)</h5>
+            <p class="display-5 text-primary"><%= stock %></p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
         <div class="card text-center">
           <div class="card-body">
             <h5 class="card-title">Total Inventory Value (Cost)</h5>
@@ -55,7 +75,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-6 mb-4">
+      <div class="col-md-4 mb-4">
         <div class="card text-center">
           <div class="card-body">
             <h5 class="card-title">Total Inventory Value (Selling)</h5>
@@ -65,7 +85,7 @@
       </div>
     </div>
 
-    <!-- Chart row -->
+    <!-- Chart row (placeholder data – replace with real API call later) -->
     <div class="row mt-4">
       <div class="col-md-12">
         <div class="card p-3">
