@@ -272,4 +272,55 @@ router.post('/checkout', (req, res) => {
   });
 });
 
+// ==================== NEW ROUTE: Sales History ====================
+// GET /sale/sales – display all past sales with items
+router.get('/sales', (req, res) => {
+  // Fetch all sales with customer names
+  db.all(`
+  SELECT s.*, c.name as customer_name
+  FROM sales s
+  LEFT JOIN customers c ON s.customer_id = c.id
+  ORDER BY s.created_at DESC
+  `, [], (err, sales) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Database error');
+    }
+
+    if (sales.length === 0) {
+      return res.render('sales', { sales: [] });
+    }
+
+    // Collect sale IDs to fetch items in bulk
+    const saleIds = sales.map(s => s.id);
+    const placeholders = saleIds.map(() => '?').join(',');
+
+    db.all(`
+    SELECT si.*, p.name as product_name
+    FROM sale_items si
+    JOIN products p ON si.product_id = p.id
+    WHERE si.sale_id IN (${placeholders})
+    `, saleIds, (err, items) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+
+      // Group items by sale_id
+      const itemsBySale = {};
+      items.forEach(item => {
+        if (!itemsBySale[item.sale_id]) itemsBySale[item.sale_id] = [];
+        itemsBySale[item.sale_id].push(item);
+      });
+
+      // Attach items to each sale
+      sales.forEach(sale => {
+        sale.items = itemsBySale[sale.id] || [];
+      });
+
+      res.render('sales', { sales });
+    });
+  });
+});
+
 module.exports = router;
