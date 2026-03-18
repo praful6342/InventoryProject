@@ -1,0 +1,22 @@
+<nav class="navbar navbar-light bg-light mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold text-primary" href="/">Sales & Inventory App</a>
+    <ul class="navbar-nav d-flex flex-row flex-wrap w-100 justify-content-end">
+      <li class="nav-item">
+        <a class="nav-link <%= currentPage === 'products' ? 'active' : '' %>" href="/products">Products</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link <%= currentPage === 'scan' ? 'active' : '' %>" href="/scan">Scan</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>" href="/dashboard">Dashboard</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link <%= currentPage === 'cart' ? 'active' : '' %>" href="/sale/cart">Cart</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link <%= currentPage === 'sales' ? 'active' : '' %>" href="/sale/sales">Sales</a>
+      </li>
+    </ul>
+  </div>
+</nav>

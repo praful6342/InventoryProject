@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales History</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/custom.css">
+</head>
+<body>
+  <%- include('partials/navbar', { currentPage: 'sales' }) %>
+
+  <div class="container mt-4">
+    <h1 class="dashboard-title"><i class="fa-solid fa-receipt me-2"></i>Sales History</h1>
+
+    <% if (sales.length === 0) { %>
+      <div class="alert alert-info">No sales recorded yet.</div>
+    <% } else { %>
+      <div class="accordion" id="salesAccordion">
+        <% sales.forEach((sale, index) => { %>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="heading<%= sale.id %>">
+              <button class="accordion-button <%= index === 0 ? '' : 'collapsed' %>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= sale.id %>" aria-expanded="<%= index === 0 ? 'true' : 'false' %>" aria-controls="collapse<%= sale.id %>">
+                <strong>Bill #<%= sale.bill_number %></strong> –
+                <%= new Date(sale.created_at).toLocaleDateString() %>
+                | Total: ₹<%= sale.total_amount.toFixed(2) %>
+                | Profit: ₹<%= sale.profit.toFixed(2) %>
+                <% if (sale.customer_name) { %> | Customer: <%= sale.customer_name %><% } %>
+              </button>
+            </h2>
+            <div id="collapse<%= sale.id %>" class="accordion-collapse collapse <%= index === 0 ? 'show' : '' %>" aria-labelledby="heading<%= sale.id %>" data-bs-parent="#salesAccordion">
+              <div class="accordion-body">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Quantity</th>
+                      <th>Unit Price</th>
+                      <th>Total</th>
+                      <th>Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% sale.items.forEach(item => { %>
+                      <tr>
+                        <td><%= item.product_name %></td>
+                        <td><%= item.quantity %></td>
+                        <td>₹<%= item.price_at_sale.toFixed(2) %></td>
+                        <td>₹<%= (item.price_at_sale * item.quantity).toFixed(2) %></td>
+                        <td>₹<%= item.profit_on_item.toFixed(2) %></td>
+                      </tr>
+                    <% }); %>
+
+                    <!-- Discount row (if discount was applied) -->
+                    <% if (sale.discount_amount && sale.discount_amount > 0) { %>
+                      <tr class="discount-row" style="color: #dc3545;">
+                        <td colspan="4" style="text-align: right;"><strong>Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</strong></td>
+                        <td>-₹<%= sale.discount_amount.toFixed(2) %></td>
+                      </tr>
+                    <% } %>
+
+                    <!-- Final total row (profit after discount) -->
+                    <tr class="total-row" style="font-weight: bold;">
+                      <td colspan="4" style="text-align: right;">Total Profit after Discount:</td>
+                      <td>₹<%= sale.profit.toFixed(2) %></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <a href="/bill/<%= sale.id %>" class="btn btn-sm btn-primary" target="_blank">View Full Bill</a>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+
+  <%- include('partials/footer') %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
