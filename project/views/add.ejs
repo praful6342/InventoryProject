@@ -39,19 +39,8 @@
   </style>
 </head>
 <body>
-  <!-- Navigation Bar (Products active) -->
-  <nav class="navbar navbar-light bg-light mb-4">
-    <div class="container-fluid">
-      <a class="navbar-brand fw-bold text-primary" href="/">InventoryApSales & Inventory Appp</a>
-      <ul class="navbar-nav d-flex flex-row flex-wrap w-100 justify-content-end">
-          <li class="nav-item"><a class="nav-link active" href="/products">Products</a></li>
-          <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
-          <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="/sale/cart">Cart</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+
+  <%- include('partials/navbar', { currentPage: 'add' }) %>
   
   <div class="container mt-4">
     <h1 class="add-title"><i class="fa-solid fa-plus me-2"></i>Add New Product</h1>

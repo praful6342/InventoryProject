@@ -38,19 +38,8 @@
   </style>
 </head>
 <body>
-  <!-- Navigation Bar (Products active) -->
-  <nav class="navbar navbar-light bg-light mb-4">
-    <div class="container-fluid">
-      <a class="navbar-brand fw-bold text-primary" href="/">Sales & Inventory App</a>
-      <ul class="navbar-nav d-flex flex-row flex-wrap w-100 justify-content-end">
-          <li class="nav-item"><a class="nav-link active" href="/products">Products</a></li>
-          <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
-          <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="/sale/cart">Cart</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+
+  <%- include('partials/navbar', { currentPage: 'edit' }) %>
   
   <div class="container mt-4">
     <h1 class="edit-title"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Product: <%= product.name %></h1>
