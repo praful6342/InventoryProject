@@ -113,7 +113,7 @@ router.get('/checkout', (req, res) => {
 
 // POST /sale/checkout – process sale
 router.post('/checkout', (req, res) => {
-  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date } = req.body;
+  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payment_method } = req.body;
   const cart = req.session.cart;
   if (!cart || cart.length === 0) {
     return res.redirect('/sale/cart');
@@ -137,14 +137,14 @@ router.post('/checkout', (req, res) => {
                  return res.status(500).send('Error creating customer');
                }
                customerId = this.lastID;
-               proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value, sale_date);
+               proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value, sale_date, payment_method);
              }
       );
     } else {
-      proceedWithSale(null, preDiscountTotal, discount_type, discount_value, sale_date);
+      proceedWithSale(null, preDiscountTotal, discount_type, discount_value, sale_date, payment_method);
     }
 
-    function proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value, sale_date) {
+    function proceedWithSale(customerId, preDiscountTotal, discount_type, discount_value, sale_date, payment_method) {
       const billNumber = generateBillNumber();
       let profitTotal = 0;
       let itemsProcessed = 0;
@@ -159,6 +159,7 @@ router.post('/checkout', (req, res) => {
           const cost = product.cost_price;
           const profitOnItem = (item.selling_price - cost) * item.quantity;
           profitTotal += profitOnItem;
+          // Include size in the item object
           items.push({
             product_id: item.productId,
             size: item.size,
@@ -179,7 +180,6 @@ router.post('/checkout', (req, res) => {
               } else if (discount_type === 'fixed' && discVal <= preDiscountTotal) {
                 discountAmount = discVal;
               } else {
-                // Invalid discount – rollback and return error
                 db.run('ROLLBACK');
                 return res.status(400).send('Invalid discount value');
               }
@@ -187,11 +187,11 @@ router.post('/checkout', (req, res) => {
               profitTotal -= discountAmount;
             }
 
-            // Create sale (including sale_date)
+            // Create sale
             db.run(
-              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date || null],
+              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date, payment_method)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date || null, payment_method || 'Cash'],
                    function(err) {
                      if (err) {
                        console.error('Sale insert error:', err);
@@ -200,13 +200,13 @@ router.post('/checkout', (req, res) => {
                      }
                      const saleId = this.lastID;
 
-                     // Insert sale items
+                     // Insert sale items (including size)
                      let itemsInserted = 0;
                      items.forEach(item => {
                        db.run(
-                         `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item)
-                         VALUES (?, ?, ?, ?, ?)`,
-                              [saleId, item.product_id, item.quantity, item.price_at_sale, item.profit_on_item],
+                         `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item, size)
+                         VALUES (?, ?, ?, ?, ?, ?)`,
+                              [saleId, item.product_id, item.quantity, item.price_at_sale, item.profit_on_item, item.size],
                               function(err) {
                                 if (err) {
                                   console.error('Sale item insert error:', err);
@@ -215,7 +215,6 @@ router.post('/checkout', (req, res) => {
                                 }
                                 itemsInserted++;
                                 if (itemsInserted === items.length) {
-                                  // Update stock
                                   updateStock(saleId);
                                 }
                               }
@@ -254,13 +253,10 @@ router.post('/checkout', (req, res) => {
                     console.error('Commit error:', err);
                     return res.status(500).send('Error finalizing sale');
                   }
-                  // Clear cart
                   req.session.cart = [];
-                  // Emit real-time update
                   if (req.app.locals.socketApi) {
                     req.app.locals.socketApi.emitProductUpdate();
                   }
-                  // Redirect to bill
                   res.redirect(`/bill/${saleId}`);
                 });
               }
@@ -272,10 +268,126 @@ router.post('/checkout', (req, res) => {
   });
 });
 
-// ==================== NEW ROUTE: Sales History ====================
+// ==================== RETURN SALE ROUTE (WITH RETURN FLAG) ====================
+// POST /sale/return/:saleId – create a return (negative sale)
+router.post('/return/:saleId', (req, res) => {
+  const saleId = req.params.saleId;
+
+  // Get original sale details including returned flag
+  db.get('SELECT total_amount, profit, customer_id, returned FROM sales WHERE id = ?', [saleId], (err, originalSale) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Database error');
+    }
+    if (!originalSale) {
+      return res.status(404).send('Original sale not found');
+    }
+    if (originalSale.returned === 1) {
+      return res.status(400).send('This sale has already been returned');
+    }
+
+    // Fetch original sale items (includes size)
+    db.all('SELECT * FROM sale_items WHERE sale_id = ?', [saleId], (err, items) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Database error');
+      }
+      if (items.length === 0) {
+        return res.status(404).send('No items found for this sale');
+      }
+
+      // Start transaction
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        const billNumber = 'RET-' + generateBillNumber();
+        const returnTotal = -originalSale.total_amount;
+        const returnProfit = -originalSale.profit;
+
+        // Insert return sale (mark it as returned=1, but that's optional; we keep payment_method='Return')
+        db.run(
+          `INSERT INTO sales (customer_id, total_amount, profit, bill_number, payment_method, returned)
+          VALUES (?, ?, ?, ?, ?, 1)`,
+               [originalSale.customer_id, returnTotal, returnProfit, billNumber, 'Return'],
+               function(err) {
+                 if (err) {
+                   console.error(err);
+                   db.run('ROLLBACK');
+                   return res.status(500).send('Error creating return sale');
+                 }
+                 const returnSaleId = this.lastID;
+
+                 let itemsInserted = 0;
+                 items.forEach(item => {
+                   // Insert negative sale item (include size)
+                   db.run(
+                     `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item, size)
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                          [returnSaleId, item.product_id, -item.quantity, item.price_at_sale, -item.profit_on_item, item.size],
+                          function(err) {
+                            if (err) {
+                              console.error(err);
+                              db.run('ROLLBACK');
+                              return res.status(500).send('Error inserting return item');
+                            }
+
+                            // Restock using the stored size
+                            db.get(
+                              'SELECT id FROM product_variants WHERE product_id = ? AND size = ?',
+                              [item.product_id, item.size],
+                              (err, variant) => {
+                                if (err || !variant) {
+                                  console.error('Variant not found for product', item.product_id, 'size', item.size);
+                                  db.run('ROLLBACK');
+                                  return res.status(500).send('Variant not found');
+                                }
+                                db.run(
+                                  'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
+                                  [item.quantity, variant.id],
+                                  function(err) {
+                                    if (err) {
+                                      console.error(err);
+                                      db.run('ROLLBACK');
+                                      return res.status(500).send('Error restoring stock');
+                                    }
+                                    itemsInserted++;
+                                    if (itemsInserted === items.length) {
+                                      // Mark original sale as returned
+                                      db.run('UPDATE sales SET returned = 1 WHERE id = ?', [saleId], function(err) {
+                                        if (err) {
+                                          console.error(err);
+                                          db.run('ROLLBACK');
+                                          return res.status(500).send('Error marking original sale as returned');
+                                        }
+                                        db.run('COMMIT', (err) => {
+                                          if (err) {
+                                            console.error(err);
+                                            return res.status(500).send('Error finalizing return');
+                                          }
+                                          if (req.app.locals.socketApi) {
+                                            req.app.locals.socketApi.emitProductUpdate();
+                                          }
+                                          res.redirect(`/bill/${returnSaleId}`);
+                                        });
+                                      });
+                                    }
+                                  }
+                                );
+                              }
+                            );
+                          }
+                   );
+                 });
+               }
+        );
+      });
+    });
+  });
+});
+
+// ==================== SALES HISTORY ====================
 // GET /sale/sales – display all past sales with items
 router.get('/sales', (req, res) => {
-  // Fetch all sales with customer names
   db.all(`
   SELECT s.*, c.name as customer_name
   FROM sales s
@@ -291,7 +403,6 @@ router.get('/sales', (req, res) => {
       return res.render('sales', { sales: [] });
     }
 
-    // Collect sale IDs to fetch items in bulk
     const saleIds = sales.map(s => s.id);
     const placeholders = saleIds.map(() => '?').join(',');
 
@@ -306,14 +417,12 @@ router.get('/sales', (req, res) => {
         return res.status(500).send('Database error');
       }
 
-      // Group items by sale_id
       const itemsBySale = {};
       items.forEach(item => {
         if (!itemsBySale[item.sale_id]) itemsBySale[item.sale_id] = [];
         itemsBySale[item.sale_id].push(item);
       });
 
-      // Attach items to each sale
       sales.forEach(sale => {
         sale.items = itemsBySale[sale.id] || [];
       });

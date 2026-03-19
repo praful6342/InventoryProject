@@ -141,8 +141,6 @@
       btn.addEventListener('click', function() {
         const productId = this.dataset.productId;
         const size = this.dataset.size;
-        const row = this.closest('tr');
-        row.classList.add('cart-item-remove');
         setTimeout(() => {
           updateQuantity(productId, size, 0);
         }, 300);

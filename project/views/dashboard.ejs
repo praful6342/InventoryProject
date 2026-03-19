@@ -11,20 +11,8 @@
   <script src="/js/app.js" defer></script>
 </head>
 <body>
-  <!-- Navigation Bar (replace with partial if you have created one) -->
-  <nav class="navbar navbar-light bg-light mb-4">
-    <div class="container-fluid">
-      <a class="navbar-brand fw-bold text-primary" href="/">Sales & Inventory App</a>
-      <ul class="navbar-nav d-flex flex-row flex-wrap w-100 justify-content-end">
-          <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
-          <li class="nav-item"><a class="nav-link" href="/scan">Scan</a></li>
-          <li class="nav-item"><a class="nav-link active" href="/dashboard">Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="/sale/cart">Cart</a></li>
-          <li class="nav-item"><a class="nav-link" href="/sale/sales">Sales</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+
+  <%- include('partials/navbar', { currentPage: 'dashboard' }) %>
 
   <main class="container">
     <h1 class="dashboard-title mb-4">Today's Dashboard</h1>

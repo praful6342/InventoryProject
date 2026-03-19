@@ -26,6 +26,11 @@
     .bill-header h2 {
       margin-bottom: 5px;
     }
+    .return-badge {
+      color: #dc3545;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
     .bill-details {
       margin-bottom: 20px;
     }
@@ -47,6 +52,9 @@
     .discount-row {
       color: #dc3545;
     }
+    .negative-amount {
+      color: #dc3545;
+    }
   </style>
 </head>
 <body>
@@ -57,7 +65,11 @@
     <div class="bill-container">
       <div class="bill-header">
         <h2>Your Clothing Store</h2>
-        <p>Invoice</p>
+        <% if (sale.total_amount < 0) { %>
+          <p class="return-badge">RETURN BILL</p>
+        <% } else { %>
+          <p>Invoice</p>
+        <% } %>
       </div>
 
       <div class="bill-details">
@@ -69,6 +81,7 @@
             <%= new Date(sale.created_at + 'Z').toLocaleString() %>
           <% } %>
         </p>
+        <p><strong>Payment Method:</strong> <%= sale.payment_method || 'Cash' %></p>
         <% if (sale.customer_name) { %>
           <p><strong>Customer:</strong> <%= sale.customer_name %></p>
           <% if (sale.customer_phone) { %><p><strong>Phone:</strong> <%= sale.customer_phone %></p><% } %>
@@ -82,6 +95,7 @@
         <thead>
           <tr>
             <th>Item</th>
+            <th>Size</th>
             <th>Quantity</th>
             <th>Unit Price (₹)</th>
             <th>Total (₹)</th>
@@ -91,23 +105,28 @@
           <% items.forEach(item => { %>
           <tr>
             <td><%= item.product_name %></td>
+            <td><%= item.size || '—' %></td>
             <td><%= item.quantity %></td>
             <td>₹<%= item.price_at_sale.toFixed(2) %></td>
-            <td>₹<%= (item.price_at_sale * item.quantity).toFixed(2) %></td>
+            <td class="<%= (item.price_at_sale * item.quantity) < 0 ? 'negative-amount' : '' %>">
+              ₹<%= (item.price_at_sale * item.quantity).toFixed(2) %>
+            </td>
           </tr>
           <% }) %>
 
           <!-- Discount row (if discount was applied) -->
           <% if (sale.discount_amount && sale.discount_amount > 0) { %>
           <tr class="discount-row">
-            <td colspan="3" style="text-align: right;">Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</td>
+            <td colspan="4" style="text-align: right;">Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</td>
             <td>-₹<%= sale.discount_amount.toFixed(2) %></td>
           </tr>
           <% } %>
 
           <tr class="total-row">
-            <td colspan="3" style="text-align: right;">Total Amount:</td>
-            <td>₹<%= sale.total_amount.toFixed(2) %></td>
+            <td colspan="4" style="text-align: right;">Total Amount:</td>
+            <td class="<%= sale.total_amount < 0 ? 'negative-amount' : '' %>">
+              ₹<%= sale.total_amount.toFixed(2) %>
+            </td>
           </tr>
         </tbody>
       </table>

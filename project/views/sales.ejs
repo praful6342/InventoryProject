@@ -26,7 +26,15 @@
                 <%= new Date(sale.created_at).toLocaleDateString() %>
                 | Total: ₹<%= sale.total_amount.toFixed(2) %>
                 | Profit: ₹<%= sale.profit.toFixed(2) %>
+                | Payment: <%= sale.payment_method || 'Cash' %>
                 <% if (sale.customer_name) { %> | Customer: <%= sale.customer_name %><% } %>
+
+                <!-- Status indicators -->
+                <% if (sale.total_amount < 0) { %>
+                  | <span class="text-warning fw-bold">Return Bill</span>
+                <% } else if (sale.returned == 1) { %>
+                  | <span class="text-danger fw-bold">Returned</span>
+                <% } %>
               </button>
             </h2>
             <div id="collapse<%= sale.id %>" class="accordion-collapse collapse <%= index === 0 ? 'show' : '' %>" aria-labelledby="heading<%= sale.id %>" data-bs-parent="#salesAccordion">
@@ -67,7 +75,14 @@
                     </tr>
                   </tbody>
                 </table>
-                <a href="/bill/<%= sale.id %>" class="btn btn-sm btn-primary" target="_blank">View Full Bill</a>
+                <div class="d-flex gap-2">
+                  <a href="/bill/<%= sale.id %>" class="btn btn-sm btn-primary" target="_blank">View Full Bill</a>
+                  <% if (sale.total_amount >= 0 && sale.returned == 0) { %>
+                    <form method="POST" action="/sale/return/<%= sale.id %>" style="display:inline;" onsubmit="return confirm('Are you sure you want to return this entire sale? This will restock the items and create a return bill.');">
+                      <button type="submit" class="btn btn-sm btn-warning">Return Sale</button>
+                    </form>
+                  <% } %>
+                </div>
               </div>
             </div>
           </div>

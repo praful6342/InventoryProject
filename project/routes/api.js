@@ -80,6 +80,54 @@ router.get('/products/:id', (req, res) => {
   });
 });
 
+// Get product names for autocomplete
+router.get('/product-names', (req, res) => {
+  db.all('SELECT name FROM products ORDER BY name', [], (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    const names = rows.map(row => row.name);
+    res.json(names);
+  });
+});
+
+// Get product codes for autocomplete
+router.get('/product-codes', (req, res) => {
+  db.all('SELECT product_code FROM products ORDER BY product_code', [], (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    const codes = rows.map(row => row.product_code);
+    res.json(codes);
+  });
+});
+
+// Get distinct categories for autocomplete
+router.get('/categories', (req, res) => {
+  db.all('SELECT DISTINCT category FROM products ORDER BY category', [], (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    const categories = rows.map(row => row.category);
+    res.json(categories);
+  });
+});
+
+// Get distinct suppliers for autocomplete
+router.get('/suppliers', (req, res) => {
+  db.all('SELECT DISTINCT supplier FROM products ORDER BY supplier', [], (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    const suppliers = rows.map(row => row.supplier);
+    res.json(suppliers);
+  });
+});
+
 // Serve QR code image
 router.get('/qr/:code', (req, res) => {
   const code = req.params.code;
