@@ -189,6 +189,39 @@ db.serialize(() => {
                                          FOREIGN KEY (product_id) REFERENCES products(id)
   )
   `);
+
+  // Create users table if not exists
+  db.run(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'seller'
+  )
+  `, (err) => {
+    if (err) {
+      console.error("Error creating users table:", err);
+    } else {
+      // Check if there are any users; if none, create a default admin.
+      db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
+        if (err) {
+          console.error("Error checking users count:", err);
+        } else if (row.count === 0) {
+          // Use bcrypt to hash the default password
+          const bcrypt = require('bcrypt');
+          const defaultPassword = 'admin123'; // Change this in production!
+          const hashed = bcrypt.hashSync(defaultPassword, 10);
+          db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+                 ['admin', hashed, 'admin'],
+                 (err) => {
+                   if (err) console.error("Error creating default admin user:", err);
+                   else console.log("Default admin user created (username: admin, password: admin123). CHANGE THE PASSWORD!");
+                 }
+          );
+        }
+      });
+    }
+  });
 });
 
 module.exports = db;

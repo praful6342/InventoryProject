@@ -99,7 +99,11 @@
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <button type="button" id="add-product-modal-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
+      <% if (user && user.role === 'admin') { %>
+        <button type="button" id="add-product-modal-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
+      <% } else { %>
+        <div></div>
+      <% } %>
       <div>
         <span id="update-status" class="text-muted me-2"></span>
         <button id="refresh-now" class="btn btn-sm btn-outline-secondary">Refresh Now</button>
@@ -215,7 +219,7 @@
     </div>
 
     <div class="table-responsive">
-      <table class="table table-striped align-middle mb-0">
+      <table class="table table-striped table-sm align-middle mb-0 products-table">
         <thead class="table-light">
           <tr>
             <th>Product Code</th>

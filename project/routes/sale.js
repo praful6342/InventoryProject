@@ -268,12 +268,13 @@ router.post('/checkout', (req, res) => {
   });
 });
 
-// ==================== RETURN SALE ROUTE (WITH RETURN FLAG) ====================
+// ==================== RETURN SALE ROUTE (WITH RETURN DATE) ====================
 // POST /sale/return/:saleId – create a return (negative sale)
 router.post('/return/:saleId', (req, res) => {
   const saleId = req.params.saleId;
+  const returnDate = req.body.return_date || null; // optional, format YYYY-MM-DD
 
-  // Get original sale details including returned flag
+  // Get original sale details including returned flag and customer_id
   db.get('SELECT total_amount, profit, customer_id, returned FROM sales WHERE id = ?', [saleId], (err, originalSale) => {
     if (err) {
       console.error(err);
@@ -304,11 +305,11 @@ router.post('/return/:saleId', (req, res) => {
         const returnTotal = -originalSale.total_amount;
         const returnProfit = -originalSale.profit;
 
-        // Insert return sale (mark it as returned=1, but that's optional; we keep payment_method='Return')
+        // Insert return sale (mark it as returned=1, include returnDate as sale_date)
         db.run(
-          `INSERT INTO sales (customer_id, total_amount, profit, bill_number, payment_method, returned)
-          VALUES (?, ?, ?, ?, ?, 1)`,
-               [originalSale.customer_id, returnTotal, returnProfit, billNumber, 'Return'],
+          `INSERT INTO sales (customer_id, total_amount, profit, bill_number, payment_method, returned, sale_date)
+          VALUES (?, ?, ?, ?, ?, 1, ?)`,
+               [originalSale.customer_id, returnTotal, returnProfit, billNumber, 'Return', returnDate],
                function(err) {
                  if (err) {
                    console.error(err);

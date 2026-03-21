@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const QRCode = require('qrcode');
+const { isAdmin } = require('../middleware/auth'); // Import isAdmin middleware
 
 // Helper: generate product code from category, name
 function generateProductCode(category, name) {
@@ -10,7 +11,7 @@ function generateProductCode(category, name) {
   .toUpperCase();
 }
 
-// List products – ordered by newest first
+// List products – ordered by newest first (accessible to all authenticated users)
 router.get('/', (req, res) => {
   db.all('SELECT * FROM products ORDER BY created_at DESC', [], (err, rows) => {
     if (err) {
@@ -21,8 +22,8 @@ router.get('/', (req, res) => {
   });
 });
 
-// Add product (with variants) – JSON API for modal
-router.post('/add', (req, res) => {
+// Add product (with variants) – JSON API for modal (admin only)
+router.post('/add', isAdmin, (req, res) => {
   const {
     category,
     name,
@@ -110,7 +111,7 @@ router.post('/add', (req, res) => {
   );
 });
 
-// View single product (with QR code)
+// View single product (with QR code) – accessible to all authenticated users
 router.get('/:id', (req, res) => {
   const id = req.params.id;
   db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
@@ -131,8 +132,8 @@ router.get('/:id', (req, res) => {
   });
 });
 
-// Show edit product form
-router.get('/edit/:id', (req, res) => {
+// Show edit product form (admin only)
+router.get('/edit/:id', isAdmin, (req, res) => {
   const id = req.params.id;
   const error = req.query.error || null;
   db.get('SELECT * FROM products WHERE id = ?', [id], (err, productRow) => {
@@ -154,8 +155,8 @@ router.get('/edit/:id', (req, res) => {
   });
 });
 
-// Update product (price, margin, stock, etc.) – QR code remains unchanged
-router.post('/update/:id', (req, res) => {
+// Update product (price, margin, stock, etc.) – QR code remains unchanged (admin only)
+router.post('/update/:id', isAdmin, (req, res) => {
   const id = req.params.id;
   const {
     category,
@@ -261,7 +262,7 @@ router.post('/update/:id', (req, res) => {
   });
 });
 
-// Print label for a product
+// Print label for a product – accessible to all authenticated users
 router.get('/label/:id', (req, res) => {
   const id = req.params.id;
   db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
@@ -282,8 +283,8 @@ router.get('/label/:id', (req, res) => {
   });
 });
 
-// Delete product (with cleanup) – supports both form POST and JSON fetch
-router.post('/delete/:id', (req, res) => {
+// Delete product (with cleanup) – supports both form POST and JSON fetch (admin only)
+router.post('/delete/:id', isAdmin, (req, res) => {
   const id = req.params.id;
   const isJson = req.xhr || (req.headers.accept && req.headers.accept.includes('json'));
 

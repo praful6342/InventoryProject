@@ -8,10 +8,10 @@ router.get('/:id', (req, res) => {
 
   // Fetch sale details with customer and items
   db.get(`
-    SELECT s.*, c.name as customer_name, c.phone as customer_phone, c.email as customer_email
-    FROM sales s
-    LEFT JOIN customers c ON s.customer_id = c.id
-    WHERE s.id = ?
+  SELECT s.*, c.name as customer_name, c.phone as customer_phone, c.email as customer_email
+  FROM sales s
+  LEFT JOIN customers c ON s.customer_id = c.id
+  WHERE s.id = ?
   `, [saleId], (err, sale) => {
     if (err) {
       console.error(err);
@@ -23,10 +23,10 @@ router.get('/:id', (req, res) => {
 
     // Fetch items for this sale with product details
     db.all(`
-      SELECT si.*, p.name as product_name
-      FROM sale_items si
-      JOIN products p ON si.product_id = p.id
-      WHERE si.sale_id = ?
+    SELECT si.*, p.name as product_name
+    FROM sale_items si
+    JOIN products p ON si.product_id = p.id
+    WHERE si.sale_id = ?
     `, [saleId], (err, items) => {
       if (err) {
         console.error(err);
