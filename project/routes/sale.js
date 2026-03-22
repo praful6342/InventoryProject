@@ -433,4 +433,90 @@ router.get('/sales', (req, res) => {
   });
 });
 
+// ==================== SOLD PRODUCTS ====================
+// GET /sale/sold-products – display list of sold items with filters
+router.get('/sold-products', async (req, res) => {
+  const { start_date, end_date, search, page = 1, limit = 50 } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+
+  // Build the effective date expression
+  const effectiveDate = "COALESCE(s.sale_date, DATE(s.created_at, 'localtime'))";
+
+  // Build WHERE conditions
+  const whereConditions = [];
+  const params = [];
+
+  if (start_date && end_date) {
+    whereConditions.push(`${effectiveDate} BETWEEN ? AND ?`);
+    params.push(start_date, end_date);
+  }
+
+  if (search) {
+    whereConditions.push(`(p.name LIKE ? OR s.bill_number LIKE ?)`);
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  const whereClause = whereConditions.length ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+  // Count total items for pagination
+  const countQuery = `
+  SELECT COUNT(*) as total
+  FROM sale_items si
+  JOIN sales s ON si.sale_id = s.id
+  JOIN products p ON si.product_id = p.id
+  ${whereClause}
+  `;
+
+  const countResult = await new Promise((resolve, reject) => {
+    db.get(countQuery, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+  const totalItems = countResult.total;
+  const totalPages = Math.ceil(totalItems / limit);
+
+  // Fetch sold items with pagination
+  const query = `
+  SELECT
+  si.id,
+  ${effectiveDate} as sale_date,
+  s.bill_number,
+  p.name as product_name,
+  si.size,
+  si.quantity,
+  si.price_at_sale,
+  (si.quantity * si.price_at_sale) as total_amount
+  FROM sale_items si
+  JOIN sales s ON si.sale_id = s.id
+  JOIN products p ON si.product_id = p.id
+  ${whereClause}
+  ORDER BY ${effectiveDate} DESC, s.id DESC
+  LIMIT ? OFFSET ?
+  `;
+  params.push(parseInt(limit), offset);
+
+  const items = await new Promise((resolve, reject) => {
+    db.all(query, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+
+  // If AJAX request, return JSON; otherwise render page
+  if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
+    res.json({ items, totalPages, currentPage: parseInt(page), totalItems });
+  } else {
+    res.render('sold-products', {
+      items,
+      start_date: start_date || '',
+      end_date: end_date || '',
+      search: search || '',
+      currentPage: parseInt(page),
+               totalPages,
+               totalItems
+    });
+  }
+});
+
 module.exports = router;
