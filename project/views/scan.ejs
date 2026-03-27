@@ -41,6 +41,9 @@
 
   <%- include('partials/navbar', { currentPage: 'scan' }) %>
 
+  <!-- Hidden input to pass the user's role to JavaScript -->
+  <input type="hidden" id="user-role" value="<%= user ? user.role : '' %>">
+
   <div class="container mt-5">
     <h1 class="scanner-title mb-4"><i class="fa-solid fa-qrcode me-2"></i>QR Code Scanner</h1>
     <div class="row">
@@ -94,6 +97,9 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Read the user's role from the hidden input
+      const userRole = document.getElementById('user-role')?.value || '';
+
       // ========== POPULATE PRODUCT CODES DATALIST ==========
       fetch('/api/product-codes')
         .then(res => res.json())
@@ -227,11 +233,19 @@
             </div>
           </div>`;
         }
+
         html += `<hr>
           <div class="d-flex gap-2 mt-2">
-            <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary">View Details</a>
+            <a href="/products/${product.id}" class="btn btn-sm btn-outline-primary">View Details</a>`;
+
+        // Only admins see Edit and Delete buttons
+        if (userRole === 'admin') {
+          html += `
             <a href="/products/edit/${product.id}" class="btn btn-sm btn-warning">Edit</a>
-            <button class="btn btn-sm btn-danger delete-scanned-product">Delete</button>
+            <button class="btn btn-sm btn-danger delete-scanned-product">Delete</button>`;
+        }
+
+        html += `
           </div>
         </div>`;
         productInfoDiv.innerHTML = html;
@@ -277,34 +291,37 @@
           .finally(() => setLoading(this, false));
         });
 
-        // Attach delete handler
-        document.querySelector('.delete-scanned-product').addEventListener('click', function() {
-          if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-            setLoading(this, true);
-            fetch(`/products/delete/${product.id}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => {
-              if (response.ok) {
-                showToast('Product deleted successfully', 'success');
-                resultDiv.innerText = '—';
-                productInfoDiv.innerHTML = '<p class="text-muted">Scan or enter a product code to see details.</p>';
-                lastScannedId = null;
-                scanLocked = false;
-                if (scannerSection) scannerSection.style.display = '';
-                startScanner();
-              } else {
-                showToast('Error deleting product', 'danger');
-              }
-            })
-            .catch(err => {
-              console.error(err);
-              showToast('Network error', 'danger');
-            })
-            .finally(() => setLoading(this, false));
-          }
-        });
+        // Attach delete handler (only if button exists, i.e., for admins)
+        const deleteBtn = document.querySelector('.delete-scanned-product');
+        if (deleteBtn) {
+          deleteBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+              setLoading(this, true);
+              fetch(`/products/delete/${product.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+              })
+              .then(response => {
+                if (response.ok) {
+                  showToast('Product deleted successfully', 'success');
+                  resultDiv.innerText = '—';
+                  productInfoDiv.innerHTML = '<p class="text-muted">Scan or enter a product code to see details.</p>';
+                  lastScannedId = null;
+                  scanLocked = false;
+                  if (scannerSection) scannerSection.style.display = '';
+                  startScanner();
+                } else {
+                  showToast('Error deleting product', 'danger');
+                }
+              })
+              .catch(err => {
+                console.error(err);
+                showToast('Network error', 'danger');
+              })
+              .finally(() => setLoading(this, false));
+            }
+          });
+        }
 
         resultsDiv.innerHTML = '<div class="alert alert-success">Product loaded</div>';
         if (scannerSection) scannerSection.style.display = 'none';

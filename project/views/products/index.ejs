@@ -42,6 +42,14 @@
       color: #334155;
       font-weight: 600;
     }
+    /* Make entire row clickable */
+    .clickable-row {
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .clickable-row:hover {
+      background-color: #dbeafe !important;
+    }
   </style>
 </head>
 <body>
@@ -89,8 +97,10 @@
           <option value="M">M</option>
           <option value="L">L</option>
           <option value="XL">XL</option>
-          <option value="XXL">XXL</option>
-          <option value="XXXL">XXXL</option>
+          <option value="2XL">2XL</option>
+          <option value="3XL">3XL</option>
+          <option value="4XL">4XL</option>
+          <option value="5XL">5XL</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -151,7 +161,7 @@
               <!-- Has Sizes Checkbox -->
               <div class="mb-3 form-check mt-3">
                 <input type="checkbox" class="form-check-input" id="modal-hasSizes" name="has_sizes" value="on" checked>
-                <label class="form-check-label" for="modal-hasSizes">This product has sizes (S, M, L, XL, XXL, XXXL)</label>
+                <label class="form-check-label" for="modal-hasSizes">This product has sizes (S, M, L, XL, 2XL, 3XL, 4XL, 5XL)</label>
               </div>
 
               <!-- Sizes Section -->
@@ -167,8 +177,10 @@
                           <option value="M">M</option>
                           <option value="L">L</option>
                           <option value="XL">XL</option>
-                          <option value="XXL">XXL</option>
-                          <option value="XXXL">XXXL</option>
+                          <option value="2XL">2XL</option>
+                          <option value="3XL">3XL</option>
+                          <option value="4XL">4XL</option>
+                          <option value="5XL">5XL</option>
                         </select>
                       </div>
                       <div class="col-md-5">
@@ -280,8 +292,10 @@
             <option value="M">M</option>
             <option value="L">L</option>
             <option value="XL">XL</option>
-            <option value="XXL">XXL</option>
-            <option value="XXXL">XXXL</option>
+            <option value="2XL">2XL</option>
+            <option value="3XL">3XL</option>
+            <option value="4XL">4XL</option>
+            <option value="5XL">5XL</option>
           </select>
         </div>
         <div class="col-md-5">
@@ -404,8 +418,10 @@
                   <option value="M">M</option>
                   <option value="L">L</option>
                   <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                  <option value="XXXL">XXXL</option>
+                  <option value="2XL">2XL</option>
+                  <option value="3XL">3XL</option>
+                  <option value="4XL">4XL</option>
+                  <option value="5XL">5XL</option>
                 </select>
               </div>
               <div class="col-md-5">
@@ -529,39 +545,51 @@
           const addedOn = createdDate.toLocaleDateString();
 
           html += `
-            <tr>
-              <td>${product.product_code}</td>
-              <td>${product.category}</td>
-              <td>${product.name}</td>
-              <td>${product.supplier}</td>
-              <td>
+            <tr class="clickable-row" data-href="/products/${product.id}">
+               <td>${product.product_code}</td>
+               <td>${product.category}</td>
+               <td>${product.name}</td>
+               <td>${product.supplier}</td>
+               <td>
                 ${product.has_sizes
                   ? (product.variants && product.variants.length > 0
                       ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
                       : '<span class="text-muted">—</span>')
                   : (product.variants && product.variants[0] ? `Stock: ${product.variants[0].stock}` : '<span class="text-muted">0</span>')}
-              </td>
-              <td>₹${product.cost_price}</td>
-              <td>${product.margin_percent}%</td>
-              <td>${product.margin_rs}</td>
-              <td>₹${product.selling_price}</td>
-              <td>${addedOn}</td>
-              <td>${ageDisplay}</td>
-              <td>
+               </td>
+               <td>₹${product.cost_price}</td>
+               <td>${product.margin_percent}%</td>
+               <td>${product.margin_rs}</td>
+               <td>₹${product.selling_price}</td>
+               <td>${addedOn}</td>
+               <td>${ageDisplay}</td>
+               <td>
                 <a href="/products/${product.id}">
                   <img src="/api/qr/${product.qr_code}" alt="QR" style="width: 50px; height: 50px;">
                 </a>
-              </td>
-              <td>
+               </td>
+               <td>
                 <a href="/products/${product.id}" class="btn btn-info btn-sm w-100">View</a>
-              </td>
-            </tr>
+               </td>
+             </tr>
           `;
         });
       });
 
       tbody.innerHTML = html;
       document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
+
+      // Make all clickable rows navigate to product detail
+      document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+          // Prevent navigation if clicking on an interactive element inside the row
+          if (e.target.tagName === 'A' || e.target.tagName === 'IMG' || e.target.closest('a')) {
+            return;
+          }
+          const href = this.getAttribute('data-href');
+          if (href) window.location.href = href;
+        });
+      });
     }
 
     function updateTotals(products) {

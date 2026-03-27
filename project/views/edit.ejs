@@ -80,7 +80,7 @@
 
       <div class="mb-3 form-check">
         <input type="checkbox" class="form-check-input" id="hasSizes" name="has_sizes" value="on" <%= product.has_sizes ? 'checked' : '' %>>
-        <label class="form-check-label" for="hasSizes">This product has sizes (S, M, L, XL, XXL, XXXL)</label>
+        <label class="form-check-label" for="hasSizes">This product has sizes (S, M, L, XL, 2XL, 3XL, 4XL, 5XL)</label>
       </div>
 
       <!-- Sizes Section -->
@@ -98,15 +98,17 @@
                     <option value="M" <%= v.size === 'M' ? 'selected' : '' %>>M</option>
                     <option value="L" <%= v.size === 'L' ? 'selected' : '' %>>L</option>
                     <option value="XL" <%= v.size === 'XL' ? 'selected' : '' %>>XL</option>
-                    <option value="XXL" <%= v.size === 'XXL' ? 'selected' : '' %>>XXL</option>
-                    <option value="XXXL" <%= v.size === 'XXXL' ? 'selected' : '' %>>XXXL</option>
+                    <option value="2XL" <%= v.size === '2XL' ? 'selected' : '' %>>2XL</option>
+                    <option value="3XL" <%= v.size === '3XL' ? 'selected' : '' %>>3XL</option>
+                    <option value="4XL" <%= v.size === '4XL' ? 'selected' : '' %>>4XL</option>
+                    <option value="5XL" <%= v.size === '5XL' ? 'selected' : '' %>>5XL</option>
                   </select>
                 </div>
                 <div class="col-md-5">
                   <input type="number" class="form-control" name="sizes[<%= idx %>][stock]" value="<%= v.stock %>" placeholder="Quantity">
                 </div>
                 <div class="col-md-2">
-                  <button type="button" class="btn btn-danger remove-size-row" <%= product.variants.length === 1 ? 'style=\"display:none;\"' : '' %>>Remove</button>
+                  <button type="button" class="btn btn-danger remove-size-row" <%= product.variants.length === 1 ? 'style="display:none;"' : '' %>>Remove</button>
                 </div>
               </div>
               <% } %>
@@ -120,8 +122,10 @@
                   <option value="M">M</option>
                   <option value="L">L</option>
                   <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                  <option value="XXXL">XXXL</option>
+                  <option value="2XL">2XL</option>
+                  <option value="3XL">3XL</option>
+                  <option value="4XL">4XL</option>
+                  <option value="5XL">5XL</option>
                 </select>
               </div>
               <div class="col-md-5">
@@ -199,8 +203,10 @@
             <option value="M">M</option>
             <option value="L">L</option>
             <option value="XL">XL</option>
-            <option value="XXL">XXL</option>
-            <option value="XXXL">XXXL</option>
+            <option value="2XL">2XL</option>
+            <option value="3XL">3XL</option>
+            <option value="4XL">4XL</option>
+            <option value="5XL">5XL</option>
           </select>
         </div>
         <div class="col-md-5">
