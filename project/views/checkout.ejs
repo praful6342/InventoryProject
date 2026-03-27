@@ -41,15 +41,15 @@
             <h4 class="mb-3">Customer Information (Optional)</h4>
             <div class="mb-3">
               <label for="customerName" class="form-label">Customer Name</label>
-              <input type="text" class="form-control" id="customerName" name="customerName">
+              <input type="text" class="form-control" id="customerName" name="customerName" autocomplete="off">
             </div>
             <div class="mb-3">
               <label for="customerPhone" class="form-label">Phone Number</label>
-              <input type="tel" class="form-control" id="customerPhone" name="customerPhone">
+              <input type="tel" class="form-control" id="customerPhone" name="customerPhone" autocomplete="off">
             </div>
             <div class="mb-3">
               <label for="customerEmail" class="form-label">Email Address</label>
-              <input type="email" class="form-control" id="customerEmail" name="customerEmail">
+              <input type="email" class="form-control" id="customerEmail" name="customerEmail" autocomplete="off">
             </div>
 
             <!-- Sale Date (Optional) -->
@@ -74,7 +74,7 @@
               </div>
               <div class="row">
                 <div class="col-md-6">
-                  <input type="number" class="form-control" id="discount_value" name="discount_value" min="0" step="0.01" placeholder="Enter value">
+                  <input type="number" class="form-control" id="discount_value" name="discount_value" min="0" step="0.01" placeholder="Enter value" autocomplete="off">
                 </div>
                 <div class="col-md-6">
                   <p class="mt-2"><strong>Total after discount: </strong><span id="discounted_total">₹<%= total.toFixed(2) %></span></p>

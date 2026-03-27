@@ -54,6 +54,26 @@ async function getChartData(dateCondition) {
   });
 }
 
+// Helper to get payment method breakdown for the given date condition
+async function getPaymentBreakdown(dateCondition) {
+  const query = `
+  SELECT payment_method, COALESCE(SUM(total_amount), 0) as total
+  FROM sales s
+  WHERE ${dateCondition}
+  GROUP BY payment_method
+  ORDER BY total DESC
+  `;
+  return new Promise((resolve, reject) => {
+    db.all(query, (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+}
+
 router.get('/', async (req, res) => {
   const dateCondition = getDateCondition(req);
 
@@ -75,6 +95,9 @@ router.get('/', async (req, res) => {
         (err, row) => err ? reject(err) : resolve(row)
       );
     });
+
+    // Payment method breakdown
+    const paymentBreakdown = await getPaymentBreakdown(dateCondition);
 
     // Stock & inventory values (global, independent of date)
     const stockRow = await new Promise((resolve, reject) => {
@@ -101,7 +124,8 @@ router.get('/', async (req, res) => {
            totalCost: totalCost.toFixed(2),
            totalSelling: totalSelling.toFixed(2),
            chartLabels: chartData.labels,
-           chartValues: chartData.values
+           chartValues: chartData.values,
+           paymentBreakdown: paymentBreakdown
     };
 
     // If AJAX request, return JSON; otherwise render the page

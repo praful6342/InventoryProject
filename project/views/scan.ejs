@@ -11,29 +11,78 @@
   <!-- Html5Qrcode library -->
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    #qr-reader {
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto;
-      border: 2px solid #2563eb;
-      border-radius: 18px;
+    /* Additional styles for cart panel */
+    .cart-table {
+      background: white;
+      border-radius: 16px;
       overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    #result {
+    .cart-table th {
+      background-color: #e0e7ef;
+      color: #334155;
+      font-weight: 600;
+    }
+    .cart-table td {
+      vertical-align: middle;
+    }
+    .cart-table .quantity-input {
+      width: 70px;
+      text-align: center;
+    }
+    .cart-total {
       font-size: 1.2rem;
       font-weight: bold;
-      color: #0d6efd;
+      background-color: #f1f5f9;
     }
-    .scanner-controls {
-      margin-top: 15px;
+    .btn-checkout {
+      background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
+      color: #065f46;
+      border: none;
+      font-weight: 600;
     }
-    .product-detail {
-      background-color: #f8f9fa;
-      padding: 15px;
-      border-radius: 8px;
+    .cart-header {
+      font-weight: 700;
+      color: #2563eb;
+      margin-bottom: 1rem;
     }
-    #size-select {
-      width: 100px;
+    .remove-item {
+      background: none;
+      border: none;
+      color: #dc3545;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    .remove-item:hover {
+      color: #b91c1c;
+    }
+    .quantity-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .quantity-control button {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid #dee2e6;
+      background: white;
+      cursor: pointer;
+    }
+    .quantity-control button:hover {
+      background: #e9ecef;
+    }
+    .quantity-control input {
+      width: 50px;
+      text-align: center;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 0.2rem;
+    }
+    .empty-cart-message {
+      text-align: center;
+      color: #6c757d;
+      padding: 2rem;
     }
   </style>
 </head>
@@ -44,17 +93,19 @@
   <!-- Hidden input to pass the user's role to JavaScript -->
   <input type="hidden" id="user-role" value="<%= user ? user.role : '' %>">
 
-  <div class="container mt-5">
-    <h1 class="scanner-title mb-4"><i class="fa-solid fa-qrcode me-2"></i>QR Code Scanner</h1>
+  <div class="container mt-4">
     <div class="row">
-      <div class="col-md-6">
+      <!-- Left Column: Scanner and Manual Entry -->
+      <div class="col-lg-7 mb-4">
+        <h3 class="cart-header mb-3"><i class="fa-solid fa-qrcode me-2"></i>Scan or Enter Product</h3>
+
         <!-- Manual Entry Section with Autocomplete -->
         <div class="card mb-4">
           <div class="card-body">
             <h5 class="card-title"><i class="fa-solid fa-keyboard me-2"></i>Manual Product Entry</h5>
             <div class="row g-2">
               <div class="col-md-8">
-                <input type="text" class="form-control form-control-lg" id="manualProductCode" placeholder="Enter product code (e.g., pid:123 or product code)" list="product-codes">
+                <input type="text" class="form-control form-control-lg" id="manualProductCode" placeholder="Enter product code (e.g., pid:123 or product code)" list="product-codes" autocomplete="off">
                 <datalist id="product-codes"></datalist>
               </div>
               <div class="col-md-4">
@@ -76,9 +127,9 @@
             <button id="startBtn" class="btn btn-success">Scan Next</button>
           </div>
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
+
+        <!-- Scanned product details (optional) -->
+        <div class="card mt-4">
           <div class="card-body">
             <h5 class="card-title">Scanned Product</h5>
             <div id="product-info" class="product-detail"></div>
@@ -86,6 +137,70 @@
             <div class="d-flex gap-2">
               <button id="clearBtn" class="btn btn-secondary mt-2">Clear</button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Cart Panel -->
+      <div class="col-lg-5">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h4 class="cart-header"><i class="fa-solid fa-cart-shopping me-2"></i>Your Cart</h4>
+
+            <% if (!cart || cart.length === 0) { %>
+              <div class="empty-cart-message">
+                <i class="fa-solid fa-cart-shopping fa-3x text-muted mb-3"></i>
+                <p>Your cart is empty. Scan or enter a product to add items.</p>
+              </div>
+            <% } else { %>
+              <div class="table-responsive">
+                <table class="table cart-table table-sm align-middle">
+                  <thead>
+                     —
+                      <th>Item</th>
+                      <th>Size</th>
+                      <th>Qty</th>
+                      <th>Price</th>
+                      <th>Total</th>
+                      <th></th>
+                     —
+                  </thead>
+                  <tbody id="cart-items">
+                    <% let grandTotal = 0; %>
+                    <% cart.forEach(item => { %>
+                      <% const itemTotal = item.selling_price * item.quantity; %>
+                      <% grandTotal += itemTotal; %>
+                      <tr data-product-id="<%= item.productId %>" data-size="<%= item.size %>">
+                        <td><%= item.name %></td>
+                        <td><%= item.size === 'ONESIZE' ? '—' : item.size %></td>
+                        <td>
+                          <div class="quantity-control">
+                            <button class="qty-decr">-</button>
+                            <input type="text" class="qty-input" value="<%= item.quantity %>" data-original="<%= item.quantity %>">
+                            <button class="qty-incr">+</button>
+                          </div>
+                        </td>
+                        <td>₹<%= item.selling_price.toFixed(2) %></td>
+                        <td class="item-total">₹<%= itemTotal.toFixed(2) %></td>
+                        <td><button class="remove-item btn btn-link text-danger p-0"><i class="fa-solid fa-trash"></i></button></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                  <tfoot>
+                    <tr class="cart-total">
+                      <td colspan="4" class="text-end fw-bold">Grand Total:</td>
+                      <td colspan="2" class="fw-bold text-success" id="grand-total">₹<%= grandTotal.toFixed(2) %></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div class="d-grid gap-2 mt-3">
+                <a href="/sale/checkout" class="btn btn-checkout btn-lg">
+                  <i class="fa-solid fa-credit-card me-2"></i>Proceed to Checkout
+                </a>
+              </div>
+            <% } %>
           </div>
         </div>
       </div>
@@ -282,6 +397,8 @@
               showToast(data.error, 'danger');
             } else {
               showToast('Added to cart!', 'success');
+              // Reload page to refresh cart panel (simpler than building dynamic cart)
+              location.reload();
             }
           })
           .catch(err => {
@@ -416,6 +533,115 @@
       setTimeout(() => {
         document.getElementById('scanBtn').click();
       }, 500);
+
+      // ========== CART QUANTITY CONTROLS & REMOVE (with dynamic UI update) ==========
+      function updateQuantity(productId, size, quantity) {
+        fetch('/sale/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, size, quantity })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            showToast(data.error, 'danger');
+          } else {
+            updateCartUI(productId, size, quantity);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showToast('Network error', 'danger');
+        });
+      }
+
+      function updateCartUI(productId, size, newQuantity) {
+        const row = document.querySelector(`tr[data-product-id="${productId}"][data-size="${size}"]`);
+        if (!row) {
+          // If row not found, maybe the cart is empty, reload page to rebuild
+          location.reload();
+          return;
+        }
+
+        if (newQuantity === 0) {
+          // Remove the row
+          row.remove();
+          // Check if cart is now empty
+          const tbody = document.getElementById('cart-items');
+          if (tbody.children.length === 0) {
+            // Show empty cart message
+            const cartCard = document.querySelector('.card-body');
+            cartCard.innerHTML = `
+              <div class="empty-cart-message">
+                <i class="fa-solid fa-cart-shopping fa-3x text-muted mb-3"></i>
+                <p>Your cart is empty. Scan or enter a product to add items.</p>
+              </div>
+            `;
+            // Remove the checkout button (it will be re-added by the new DOM)
+            const checkoutBtn = document.querySelector('.btn-checkout');
+            if (checkoutBtn) checkoutBtn.remove();
+          }
+        } else {
+          // Update quantity input and item total
+          const qtyInput = row.querySelector('.qty-input');
+          qtyInput.value = newQuantity;
+          const sellingPrice = parseFloat(row.cells[3].innerText.replace('₹', ''));
+          const newItemTotal = sellingPrice * newQuantity;
+          const itemTotalCell = row.querySelector('.item-total');
+          itemTotalCell.innerText = '₹' + newItemTotal.toFixed(2);
+        }
+
+        // Recalculate grand total
+        let grandTotal = 0;
+        document.querySelectorAll('#cart-items tr').forEach(row => {
+          const totalText = row.querySelector('.item-total').innerText;
+          const total = parseFloat(totalText.replace('₹', ''));
+          if (!isNaN(total)) grandTotal += total;
+        });
+        const grandTotalSpan = document.getElementById('grand-total');
+        if (grandTotalSpan) grandTotalSpan.innerText = '₹' + grandTotal.toFixed(2);
+      }
+
+      // Event delegation for all cart buttons (works even after row removal)
+      const cartItems = document.getElementById('cart-items');
+      if (cartItems) {
+        cartItems.addEventListener('click', (e) => {
+          const btn = e.target.closest('.qty-incr, .qty-decr, .remove-item');
+          if (!btn) return;
+
+          const row = btn.closest('tr');
+          const productId = parseInt(row.dataset.productId, 10);   // convert to integer
+          const size = row.dataset.size;
+
+          if (btn.classList.contains('qty-incr')) {
+            const input = row.querySelector('.qty-input');
+            let newVal = parseInt(input.value) + 1;
+            input.value = newVal;
+            updateQuantity(productId, size, newVal);
+          } else if (btn.classList.contains('qty-decr')) {
+            const input = row.querySelector('.qty-input');
+            let newVal = parseInt(input.value) - 1;
+            if (newVal < 1) newVal = 1;
+            input.value = newVal;
+            updateQuantity(productId, size, newVal);
+          } else if (btn.classList.contains('remove-item')) {
+            updateQuantity(productId, size, 0);
+          }
+        });
+
+        // Handle direct changes to the quantity input
+        cartItems.addEventListener('change', (e) => {
+          const input = e.target.closest('.qty-input');
+          if (!input) return;
+          const row = input.closest('tr');
+          const productId = parseInt(row.dataset.productId, 10);   // convert to integer
+          const size = row.dataset.size;
+          let newVal = parseInt(input.value);
+          if (isNaN(newVal) || newVal < 1) newVal = 1;
+          input.value = newVal;
+          updateQuantity(productId, size, newVal);
+        });
+      }
     });
   </script>
 </body>

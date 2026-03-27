@@ -435,3 +435,87 @@ padding: 10px;
   background-color: #e0e7ef;
   z-index: 1;
 }
+
+/* ===== NEW STYLES FOR COMBINED CART & SCAN PAGE ===== */
+.cart-table {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.cart-table th {
+  background-color: #e0e7ef;
+  color: #334155;
+  font-weight: 600;
+}
+.cart-table td {
+  vertical-align: middle;
+}
+.cart-table .quantity-input {
+  width: 70px;
+  text-align: center;
+}
+.cart-total {
+  font-size: 1.2rem;
+  font-weight: bold;
+  background-color: #f1f5f9;
+}
+.btn-checkout {
+  background: linear-gradient(90deg, #22c55e 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: none;
+  font-weight: 600;
+}
+.cart-header {
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 1rem;
+}
+.remove-item {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+.remove-item:hover {
+  color: #b91c1c;
+}
+.quantity-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.quantity-control button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #dee2e6;
+  background: white;
+  cursor: pointer;
+}
+.quantity-control button:hover {
+  background: #e9ecef;
+}
+.quantity-control input {
+  width: 50px;
+  text-align: center;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0.2rem;
+}
+.empty-cart-message {
+  text-align: center;
+  color: #6c757d;
+  padding: 2rem;
+}
+
+/* ===== PAYMENT METHOD CARD STYLES ===== */
+.payment-method-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-left: 4px solid #2563eb;
+  transition: transform 0.2s;
+}
+.payment-method-card:hover {
+  transform: translateY(-2px);
+}

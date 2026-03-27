@@ -18,7 +18,7 @@
     <div class="row mb-4">
       <div class="col-md-6 col-lg-4">
         <div class="input-group">
-          <input type="text" id="billSearch" class="form-control" placeholder="Search by bill number..." aria-label="Search bill">
+          <input type="text" id="billSearch" class="form-control" placeholder="Search by bill number..." aria-label="Search bill" autocomplete="off">
           <button class="btn btn-primary" id="searchBtn" type="button">
             <i class="fa-solid fa-search"></i> Search
           </button>
@@ -61,23 +61,21 @@
               <div class="accordion-body">
                 <table class="table table-sm">
                   <thead>
-                    <tr>
                       <th>Product</th>
                       <th>Quantity</th>
                       <th>Unit Price</th>
                       <th>Total</th>
                       <th>Profit</th>
-                    </tr>
                   </thead>
                   <tbody>
                     <% sale.items.forEach(item => { %>
-                       <tr>
-                        <td><%= item.product_name %></td>
-                        <td><%= item.quantity %></td>
-                        <td>₹<%= item.price_at_sale.toFixed(2) %></td>
-                        <td>₹<%= (item.price_at_sale * item.quantity).toFixed(2) %></td>
-                        <td>₹<%= item.profit_on_item.toFixed(2) %></td>
-                       </tr>
+                        <tr>
+                         <td><%= item.product_name %></td>
+                         <td><%= item.quantity %></td>
+                         <td>₹<%= item.price_at_sale.toFixed(2) %></td>
+                         <td>₹<%= (item.price_at_sale * item.quantity).toFixed(2) %></td>
+                         <td>₹<%= item.profit_on_item.toFixed(2) %></td>
+                        </tr>
                     <% }); %>
 
                     <!-- Discount row (if discount was applied) -->

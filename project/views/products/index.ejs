@@ -56,205 +56,207 @@
 
   <%- include('../partials/navbar', { currentPage: 'products' }) %>
 
-  <div class="container mt-4">
-    <h1 class="dashboard-title"><i class="fa-solid fa-boxes-stacked me-2"></i>Products Dashboard</h1>
+  <main>
+    <div class="container mt-4">
+      <h1 class="dashboard-title"><i class="fa-solid fa-boxes-stacked me-2"></i>Products Dashboard</h1>
 
-    <!-- Totals Card -->
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <div class="card text-center">
-          <div class="card-body">
-            <h5 class="card-title">Total Cost Price of All Products</h5>
-            <p class="display-6 text-warning" id="totalCostPrice">₹0.00</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card text-center">
-          <div class="card-body">
-            <h5 class="card-title">Total Selling Price of All Products</h5>
-            <p class="display-6 text-info" id="totalSellingPrice">₹0.00</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filter row -->
-    <div class="row mb-3">
-      <div class="col-md-4">
-        <input type="text" id="search-input" class="form-control" placeholder="Search by name, code, category, supplier...">
-      </div>
-      <div class="col-md-3">
-        <select id="category-filter" class="form-select">
-          <option value="">All Categories</option>
-          <!-- options populated dynamically from products -->
-        </select>
-      </div>
-      <div class="col-md-3">
-        <select id="size-filter" class="form-select">
-          <option value="">All Sizes</option>
-          <option value="S">S</option>
-          <option value="M">M</option>
-          <option value="L">L</option>
-          <option value="XL">XL</option>
-          <option value="2XL">2XL</option>
-          <option value="3XL">3XL</option>
-          <option value="4XL">4XL</option>
-          <option value="5XL">5XL</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <button id="clear-filters" class="btn btn-outline-secondary w-100">Clear</button>
-      </div>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <% if (user && user.role === 'admin') { %>
-        <button type="button" id="add-product-modal-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
-      <% } else { %>
-        <div></div>
-      <% } %>
-      <div>
-        <span id="update-status" class="text-muted me-2"></span>
-        <button id="refresh-now" class="btn btn-sm btn-outline-secondary">Refresh Now</button>
-      </div>
-    </div>
-
-    <!-- Add Product Modal -->
-    <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <form id="add-product-form">
-            <div class="modal-header">
-              <h5 class="modal-title" id="addProductModalLabel">Add New Product</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <!-- Totals Card -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title">Total Cost Price of All Products</h5>
+              <p class="display-6 text-warning" id="totalCostPrice">₹0.00</p>
             </div>
-            <div class="modal-body">
-              <!-- Category with datalist -->
-              <div class="row g-3">
-                <div class="col-md-4">
-                  <label for="modal-category" class="form-label">Category</label>
-                  <input type="text" class="form-control" id="modal-category" name="category" required list="category-list">
-                  <datalist id="category-list"></datalist>
-                </div>
-                <div class="col-md-4">
-                  <label for="modal-name" class="form-label">Product Name</label>
-                  <input type="text" class="form-control" id="modal-name" name="name" required list="product-names">
-                  <datalist id="product-names"></datalist>
-                </div>
-                <div class="col-md-4">
-                  <label for="modal-supplier" class="form-label">Supplier</label>
-                  <input type="text" class="form-control" id="modal-supplier" name="supplier" required list="supplier-list">
-                  <datalist id="supplier-list"></datalist>
-                </div>
-              </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title">Total Selling Price of All Products</h5>
+              <p class="display-6 text-info" id="totalSellingPrice">₹0.00</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              <!-- Created At (optional manual date) -->
-              <div class="row g-3 mt-2">
-                <div class="col-md-4">
-                  <label for="modal-created_at" class="form-label">Added On (optional)</label>
-                  <input type="date" class="form-control" id="modal-created_at" name="created_at">
-                  <small class="text-muted">Leave blank for current date/time</small>
+      <!-- Filter row -->
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <input type="text" id="search-input" class="form-control" placeholder="Search by name, code, category, supplier..." autocomplete="off">
+        </div>
+        <div class="col-md-3">
+          <select id="category-filter" class="form-select">
+            <option value="">All Categories</option>
+            <!-- options populated dynamically from products -->
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="size-filter" class="form-select">
+            <option value="">All Sizes</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="2XL">2XL</option>
+            <option value="3XL">3XL</option>
+            <option value="4XL">4XL</option>
+            <option value="5XL">5XL</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button id="clear-filters" class="btn btn-outline-secondary w-100">Clear</button>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <% if (user && user.role === 'admin') { %>
+          <button type="button" id="add-product-modal-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
+        <% } else { %>
+          <div></div>
+        <% } %>
+        <div>
+          <span id="update-status" class="text-muted me-2"></span>
+          <button id="refresh-now" class="btn btn-sm btn-outline-secondary">Refresh Now</button>
+        </div>
+      </div>
+
+      <!-- Add Product Modal -->
+      <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <form id="add-product-form">
+              <div class="modal-header">
+                <h5 class="modal-title" id="addProductModalLabel">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <!-- Category with datalist -->
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label for="modal-category" class="form-label">Category</label>
+                    <input type="text" class="form-control" id="modal-category" name="category" required list="category-list" autocomplete="off">
+                    <datalist id="category-list"></datalist>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="modal-name" class="form-label">Product Name</label>
+                    <input type="text" class="form-control" id="modal-name" name="name" required list="product-names" autocomplete="off">
+                    <datalist id="product-names"></datalist>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="modal-supplier" class="form-label">Supplier</label>
+                    <input type="text" class="form-control" id="modal-supplier" name="supplier" required list="supplier-list" autocomplete="off">
+                    <datalist id="supplier-list"></datalist>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Has Sizes Checkbox -->
-              <div class="mb-3 form-check mt-3">
-                <input type="checkbox" class="form-check-input" id="modal-hasSizes" name="has_sizes" value="on" checked>
-                <label class="form-check-label" for="modal-hasSizes">This product has sizes (S, M, L, XL, 2XL, 3XL, 4XL, 5XL)</label>
-              </div>
+                <!-- Created At (optional manual date) -->
+                <div class="row g-3 mt-2">
+                  <div class="col-md-4">
+                    <label for="modal-created_at" class="form-label">Added On (optional)</label>
+                    <input type="date" class="form-control" id="modal-created_at" name="created_at">
+                    <small class="text-muted">Leave blank for current date/time</small>
+                  </div>
+                </div>
 
-              <!-- Sizes Section -->
-              <div id="modal-sizes-section">
-                <div class="mb-3">
-                  <label class="form-label">Sizes & Stock</label>
-                  <div id="modal-sizes-container">
-                    <div class="row mb-2 modal-size-row">
-                      <div class="col-md-5">
-                        <select class="form-control" name="sizes[0][size]">
-                          <option value="">Select Size</option>
-                          <option value="S">S</option>
-                          <option value="M">M</option>
-                          <option value="L">L</option>
-                          <option value="XL">XL</option>
-                          <option value="2XL">2XL</option>
-                          <option value="3XL">3XL</option>
-                          <option value="4XL">4XL</option>
-                          <option value="5XL">5XL</option>
-                        </select>
-                      </div>
-                      <div class="col-md-5">
-                        <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
-                      </div>
-                      <div class="col-md-2">
-                        <button type="button" class="btn btn-danger remove-modal-size-row" style="display:none;">Remove</button>
+                <!-- Has Sizes Checkbox -->
+                <div class="mb-3 form-check mt-3">
+                  <input type="checkbox" class="form-check-input" id="modal-hasSizes" name="has_sizes" value="on" checked>
+                  <label class="form-check-label" for="modal-hasSizes">This product has sizes (S, M, L, XL, 2XL, 3XL, 4XL, 5XL)</label>
+                </div>
+
+                <!-- Sizes Section -->
+                <div id="modal-sizes-section">
+                  <div class="mb-3">
+                    <label class="form-label">Sizes & Stock</label>
+                    <div id="modal-sizes-container">
+                      <div class="row mb-2 modal-size-row">
+                        <div class="col-md-5">
+                          <select class="form-control" name="sizes[0][size]">
+                            <option value="">Select Size</option>
+                            <option value="S">S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                            <option value="2XL">2XL</option>
+                            <option value="3XL">3XL</option>
+                            <option value="4XL">4XL</option>
+                            <option value="5XL">5XL</option>
+                          </select>
+                        </div>
+                        <div class="col-md-5">
+                          <input type="number" class="form-control" name="sizes[0][stock]" placeholder="Quantity">
+                        </div>
+                        <div class="col-md-2">
+                          <button type="button" class="btn btn-danger remove-modal-size-row" style="display:none;">Remove</button>
+                        </div>
                       </div>
                     </div>
+                    <button type="button" class="btn btn-primary mt-2" id="add-modal-size-row">Add Size</button>
                   </div>
-                  <button type="button" class="btn btn-primary mt-2" id="add-modal-size-row">Add Size</button>
                 </div>
-              </div>
 
-              <!-- Single Stock Section -->
-              <div id="modal-single-stock-section" class="mb-3" style="display: none;">
-                <label for="modal-stock" class="form-label">Stock (units)</label>
-                <input type="number" class="form-control" id="modal-stock" name="stock" min="0">
-              </div>
+                <!-- Single Stock Section -->
+                <div id="modal-single-stock-section" class="mb-3" style="display: none;">
+                  <label for="modal-stock" class="form-label">Stock (units)</label>
+                  <input type="number" class="form-control" id="modal-stock" name="stock" min="0">
+                </div>
 
-              <!-- Price Fields -->
-              <div class="row g-3 mt-2">
-                <div class="col-md-4">
-                  <label for="modal-cost_price" class="form-label">Cost Price (₹)</label>
-                  <input type="number" step="0.01" class="form-control" id="modal-cost_price" name="cost_price" required>
-                </div>
-                <div class="col-md-4">
-                  <label for="modal-margin_percent" class="form-label">Margin (%)</label>
-                  <input type="number" step="0.01" class="form-control" id="modal-margin_percent" name="margin_percent" required>
-                </div>
-                <div class="col-md-4">
-                  <label for="modal-margin_rs" class="form-label">Margin (₹)</label>
-                  <input type="number" step="0.01" class="form-control" id="modal-margin_rs" name="margin_rs" readonly>
-                </div>
-                <div class="col-md-4">
-                  <label for="modal-selling_price" class="form-label">Selling Price (₹)</label>
-                  <input type="number" step="0.01" class="form-control" id="modal-selling_price" name="selling_price" readonly>
+                <!-- Price Fields -->
+                <div class="row g-3 mt-2">
+                  <div class="col-md-4">
+                    <label for="modal-cost_price" class="form-label">Cost Price (₹)</label>
+                    <input type="number" step="0.01" class="form-control" id="modal-cost_price" name="cost_price" required>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="modal-margin_percent" class="form-label">Margin (%)</label>
+                    <input type="number" step="0.01" class="form-control" id="modal-margin_percent" name="margin_percent" required>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="modal-margin_rs" class="form-label">Margin (₹)</label>
+                    <input type="number" step="0.01" class="form-control" id="modal-margin_rs" name="margin_rs" readonly>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="modal-selling_price" class="form-label">Selling Price (₹)</label>
+                    <input type="number" step="0.01" class="form-control" id="modal-selling_price" name="selling_price" readonly>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-success">Save Product</button>
-            </div>
-          </form>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success">Save Product</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="table-responsive">
-      <table class="table table-striped table-sm align-middle mb-0 products-table">
-        <thead class="table-light">
-          <tr>
-            <th>Product Code</th>
-            <th>Category</th>
-            <th>Name</th>
-            <th>Supplier</th>
-            <th>Sizes & Stock</th>
-            <th>Cost Price (₹)</th>
-            <th>Margin (%)</th>
-            <th>Margin (₹)</th>
-            <th>Selling Price (₹)</th>
-            <th>Added On</th>
-            <th>Age (days)</th>
-            <th>QR Code</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="products-table-body">
-          <!-- populated by JS -->
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-striped table-sm align-middle mb-0 products-table">
+          <thead class="table-light">
+             <tr>
+              <th>Product Code</th>
+              <th>Category</th>
+              <th>Name</th>
+              <th>Supplier</th>
+              <th>Sizes & Stock</th>
+              <th>Cost Price (₹)</th>
+              <th>Margin (%)</th>
+              <th>Margin (₹)</th>
+              <th>Selling Price (₹)</th>
+              <th>Added On</th>
+              <th>Age (days)</th>
+              <th>QR Code</th>
+              <th>Actions</th>
+             </tr>
+          </thead>
+          <tbody id="products-table-body">
+            <!-- populated by JS -->
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </main>
 
   <%- include('../partials/footer') %>
 
@@ -546,32 +548,32 @@
 
           html += `
             <tr class="clickable-row" data-href="/products/${product.id}">
-               <td>${product.product_code}</td>
-               <td>${product.category}</td>
-               <td>${product.name}</td>
-               <td>${product.supplier}</td>
-               <td>
+                <td>${product.product_code}</td>
+                <td>${product.category}</td>
+                <td>${product.name}</td>
+                <td>${product.supplier}</td>
+                <td>
                 ${product.has_sizes
                   ? (product.variants && product.variants.length > 0
                       ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
                       : '<span class="text-muted">—</span>')
                   : (product.variants && product.variants[0] ? `Stock: ${product.variants[0].stock}` : '<span class="text-muted">0</span>')}
-               </td>
-               <td>₹${product.cost_price}</td>
-               <td>${product.margin_percent}%</td>
-               <td>${product.margin_rs}</td>
-               <td>₹${product.selling_price}</td>
-               <td>${addedOn}</td>
-               <td>${ageDisplay}</td>
-               <td>
+                </td>
+                <td>₹${product.cost_price}</td>
+                <td>${product.margin_percent}%</td>
+                <td>${product.margin_rs}</td>
+                <td>₹${product.selling_price}</td>
+                <td>${addedOn}</td>
+                <td>${ageDisplay}</td>
+                <td>
                 <a href="/products/${product.id}">
                   <img src="/api/qr/${product.qr_code}" alt="QR" style="width: 50px; height: 50px;">
                 </a>
-               </td>
-               <td>
+                </td>
+                <td>
                 <a href="/products/${product.id}" class="btn btn-info btn-sm w-100">View</a>
-               </td>
-             </tr>
+                </td>
+              </tr>
           `;
         });
       });

@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
-// GET /scan - show the scanner page
+// GET /scan - show the scanner page with current cart
 router.get('/', (req, res) => {
-  res.render('scan', { title: 'Scan QR Code' });
+  const cart = req.session.cart || [];
+  res.render('scan', { title: 'Scan QR Code', cart: cart });
 });
 
 // POST /scan/scan-product - handle QR scan

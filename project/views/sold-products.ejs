@@ -46,82 +46,79 @@
 
   <%- include('partials/navbar', { currentPage: 'soldProducts' }) %>
 
-  <div class="container mt-4">
-    <h1 class="sold-products-title"><i class="fa-solid fa-list-ul me-2"></i>Sold Products</h1>
+  <main>
+    <div class="container mt-4">
+      <h1 class="sold-products-title"><i class="fa-solid fa-list-ul me-2"></i>Sold Products</h1>
 
-    <div class="filter-section">
-      <div class="row g-3 align-items-end">
-        <div class="col-md-4">
-          <label class="form-label">Date Range</label>
-          <div class="d-flex gap-2">
-            <input type="date" id="startDate" class="form-control" value="<%= start_date %>">
-            <span>to</span>
-            <input type="date" id="endDate" class="form-control" value="<%= end_date %>">
+      <div class="filter-section">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Date Range</label>
+            <div class="d-flex gap-2">
+              <input type="date" id="startDate" class="form-control" value="<%= start_date %>">
+              <span>to</span>
+              <input type="date" id="endDate" class="form-control" value="<%= end_date %>">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Search</label>
+            <input type="text" id="searchInput" class="form-control" placeholder="Product name or Bill number" value="<%= search %>" autocomplete="off">
+          </div>
+          <div class="col-md-4">
+            <button id="applyFilters" class="btn btn-primary w-100">Apply Filters</button>
           </div>
         </div>
-        <div class="col-md-4">
-          <label class="form-label">Search</label>
-          <input type="text" id="searchInput" class="form-control" placeholder="Product name or Bill number" value="<%= search %>">
-        </div>
-        <div class="col-md-4">
-          <button id="applyFilters" class="btn btn-primary w-100">Apply Filters</button>
-        </div>
       </div>
-    </div>
 
-    <div class="table-container">
-      <table class="table table-striped table-hover mb-0">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Bill Number</th>
-            <th>Product</th>
-            <th>Size</th>
-            <th>Quantity</th>
-            <th>Price (₹)</th>
-            <th>Total (₹)</th>
-          </tr>
-        </thead>
-        <tbody id="itemsTableBody">
-          <% if (items.length === 0) { %>
-            <tr><td colspan="7" class="text-center">No items found.</td></tr>
-          <% } else { %>
-            <% items.forEach(item => { %>
-              <tr>
-                <td><%= new Date(item.sale_date).toLocaleDateString() %></td>
-                <td><%= item.bill_number %></td>
-                <td><%= item.product_name %></td>
-                <td><%= item.size || '—' %></td>
-                <td><%= item.quantity %></td>
-                <td>₹<%= item.price_at_sale.toFixed(2) %></td>
-                <td>₹<%= item.total_amount.toFixed(2) %></td>
-              </tr>
-            <% }); %>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
+      <div class="table-container">
+        <table class="table table-striped table-hover mb-0">
+          <thead>
+              <th>Date</th>
+              <th>Bill Number</th>
+              <th>Product</th>
+              <th>Size</th>
+              <th>Quantity</th>
+              <th>Price (₹)</th>
+              <th>Total (₹)</th>
+          </thead>
+          <tbody id="itemsTableBody">
+            <% if (items.length === 0) { %>
+              <tr><td colspan="7" class="text-center">No items found.<?php } else { %>
+              <% items.forEach(item => { %>
+                   <td><%= new Date(item.sale_date).toLocaleDateString() %></td>
+                   <td><%= item.bill_number %></td>
+                   <td><%= item.product_name %></td>
+                   <td><%= item.size || '—' %></td>
+                   <td><%= item.quantity %></td>
+                   <td>₹<%= item.price_at_sale.toFixed(2) %></td>
+                   <td>₹<%= item.total_amount.toFixed(2) %></td>
+              <% }); %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
 
-    <!-- Pagination controls -->
-    <% if (totalPages > 1) { %>
-      <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-center">
-          <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
-            <a class="page-link" href="#" data-page="<%= currentPage - 1 %>">Previous</a>
-          </li>
-          <% for (let i = 1; i <= totalPages; i++) { %>
-            <li class="page-item <%= i === currentPage ? 'active' : '' %>">
-              <a class="page-link" href="#" data-page="<%= i %>"><%= i %></a>
+      <!-- Pagination controls -->
+      <% if (totalPages > 1) { %>
+        <nav aria-label="Page navigation" class="mt-4">
+          <ul class="pagination justify-content-center">
+            <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+              <a class="page-link" href="#" data-page="<%= currentPage - 1 %>">Previous</a>
             </li>
-          <% } %>
-          <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
-            <a class="page-link" href="#" data-page="<%= currentPage + 1 %>">Next</a>
-          </li>
-        </ul>
-      </nav>
-    <% } %>
+            <% for (let i = 1; i <= totalPages; i++) { %>
+              <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                <a class="page-link" href="#" data-page="<%= i %>"><%= i %></a>
+              </li>
+            <% } %>
+            <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+              <a class="page-link" href="#" data-page="<%= currentPage + 1 %>">Next</a>
+            </li>
+          </ul>
+        </nav>
+      <% } %>
 
-  </div>
+    </div>
+  </main>
 
   <%- include('partials/footer') %>
 

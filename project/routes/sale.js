@@ -70,10 +70,12 @@ router.post('/add', (req, res) => {
 
 // POST /sale/update – update quantity in cart (AJAX)
 router.post('/update', (req, res) => {
-  const { productId, size, quantity } = req.body;
+  let { productId, size, quantity } = req.body;
   if (!productId || !size || quantity < 0) {
     return res.status(400).json({ error: 'Invalid request' });
   }
+  // Convert productId to integer to match the stored type
+  productId = parseInt(productId, 10);
 
   if (!req.session.cart) req.session.cart = [];
 

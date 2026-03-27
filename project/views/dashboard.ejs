@@ -37,6 +37,14 @@
     @keyframes spinner-border {
       to { transform: rotate(360deg); }
     }
+    .payment-method-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+      border-left: 4px solid #2563eb;
+      transition: transform 0.2s;
+    }
+    .payment-method-card:hover {
+      transform: translateY(-2px);
+    }
   </style>
 </head>
 <body>
@@ -102,6 +110,49 @@
       </div>
     </div>
 
+    <!-- New row: Payment Method Breakdown -->
+    <div class="row mb-4" id="payment-breakdown-row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fa-solid fa-credit-card me-2"></i>Sales by Payment Method</h5>
+          </div>
+          <div class="card-body">
+            <div class="row" id="payment-breakdown-container">
+              <% if (paymentBreakdown && paymentBreakdown.length > 0) { %>
+                <% paymentBreakdown.forEach(method => { %>
+                  <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card payment-method-card h-100">
+                      <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                          <% if (method.payment_method === 'Cash') { %>
+                            <i class="fa-solid fa-money-bill-wave me-1"></i>
+                          <% } else if (method.payment_method === 'UPI') { %>
+                            <i class="fa-solid fa-mobile-alt me-1"></i>
+                          <% } else if (method.payment_method === 'Card') { %>
+                            <i class="fa-regular fa-credit-card me-1"></i>
+                          <% } else { %>
+                            <i class="fa-solid fa-receipt me-1"></i>
+                          <% } %>
+                          <%= method.payment_method || 'Other' %>
+                        </h6>
+                        <p class="card-text display-6 fw-bold text-primary">₹<%= method.total.toFixed(2) %></p>
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              <% } else { %>
+                <div class="col-12 text-center text-muted py-4">
+                  <i class="fa-solid fa-chart-simple fa-2x mb-2"></i>
+                  <p>No sales data for this period.</p>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Second row: stock and inventory values (global, not affected by date) -->
     <div class="row">
       <div class="col-md-4 mb-4">
@@ -158,7 +209,7 @@
       return url.toString();
     }
 
-    // Update dashboard numbers and chart
+    // Update dashboard numbers, chart, and payment breakdown
     async function updateDashboard(url) {
       try {
         const response = await fetch(url, {
@@ -171,6 +222,44 @@
         document.getElementById('qtySold').innerText = data.qtySold;
         document.getElementById('profit').innerHTML = `₹${data.profit}`;
         document.getElementById('totalSales').innerHTML = `₹${data.totalSales}`;
+
+        // Update payment breakdown
+        const paymentContainer = document.getElementById('payment-breakdown-container');
+        if (data.paymentBreakdown && data.paymentBreakdown.length > 0) {
+          let paymentHtml = '';
+          data.paymentBreakdown.forEach(method => {
+            let icon = '';
+            if (method.payment_method === 'Cash') {
+              icon = '<i class="fa-solid fa-money-bill-wave me-1"></i>';
+            } else if (method.payment_method === 'UPI') {
+              icon = '<i class="fa-solid fa-mobile-alt me-1"></i>';
+            } else if (method.payment_method === 'Card') {
+              icon = '<i class="fa-regular fa-credit-card me-1"></i>';
+            } else {
+              icon = '<i class="fa-solid fa-receipt me-1"></i>';
+            }
+            paymentHtml += `
+              <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card payment-method-card h-100">
+                  <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                      ${icon} ${method.payment_method || 'Other'}
+                    </h6>
+                    <p class="card-text display-6 fw-bold text-primary">₹${method.total.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          paymentContainer.innerHTML = paymentHtml;
+        } else {
+          paymentContainer.innerHTML = `
+            <div class="col-12 text-center text-muted py-4">
+              <i class="fa-solid fa-chart-simple fa-2x mb-2"></i>
+              <p>No sales data for this period.</p>
+            </div>
+          `;
+        }
 
         // Update chart
         if (chart) {
