@@ -80,7 +80,7 @@
 
       <div class="mb-3 form-check">
         <input type="checkbox" class="form-check-input" id="hasSizes" name="has_sizes" value="on" <%= product.has_sizes ? 'checked' : '' %>>
-        <label class="form-check-label" for="hasSizes">This product has sizes (S, M, L, XL, 2XL, 3XL, 4XL, 5XL)</label>
+        <label class="form-check-label" for="hasSizes">This product has sizes (XS, S, M, L, XL, 2XL, 3XL, 4XL, 5XL)</label>
       </div>
 
       <!-- Sizes Section -->
@@ -94,6 +94,7 @@
                 <div class="col-md-5">
                   <select class="form-control" name="sizes[<%= idx %>][size]">
                     <option value="">Select Size</option>
+                    <option value="XS" <%= v.size === 'XS' ? 'selected' : '' %>>XS</option>
                     <option value="S" <%= v.size === 'S' ? 'selected' : '' %>>S</option>
                     <option value="M" <%= v.size === 'M' ? 'selected' : '' %>>M</option>
                     <option value="L" <%= v.size === 'L' ? 'selected' : '' %>>L</option>
@@ -118,6 +119,7 @@
               <div class="col-md-5">
                 <select class="form-control" name="sizes[0][size]">
                   <option value="">Select Size</option>
+                  <option value="XS">XS</option>
                   <option value="S">S</option>
                   <option value="M">M</option>
                   <option value="L">L</option>
@@ -199,6 +201,7 @@
         <div class="col-md-5">
           <select class="form-control" name="sizes[${sizeIndex}][size]">
             <option value="">Select Size</option>
+            <option value="XS">XS</option>
             <option value="S">S</option>
             <option value="M">M</option>
             <option value="L">L</option>

@@ -14,11 +14,10 @@
   <div class="container mt-4">
     <h1 class="dashboard-title"><i class="fa-solid fa-receipt me-2"></i>Sales History</h1>
 
-    <!-- Search Bar -->
     <div class="row mb-4">
-      <div class="col-md-6 col-lg-4">
+      <div class="col-md-6 col-lg-5">
         <div class="input-group">
-          <input type="text" id="billSearch" class="form-control" placeholder="Search by bill number..." aria-label="Search bill" autocomplete="off">
+          <input type="text" id="searchInput" class="form-control" placeholder="Search by bill, product code, customer name or phone" value="<%= typeof search !== 'undefined' ? search : '' %>" autocomplete="off">
           <button class="btn btn-primary" id="searchBtn" type="button">
             <i class="fa-solid fa-search"></i> Search
           </button>
@@ -31,7 +30,7 @@
     </div>
 
     <% if (sales.length === 0) { %>
-      <div class="alert alert-info">No sales recorded yet.</div>
+      <div class="alert alert-info">No sales found.</div>
     <% } else { %>
       <div class="accordion" id="salesAccordion">
         <% sales.forEach((sale, index) => { %>
@@ -39,56 +38,40 @@
             <h2 class="accordion-header" id="heading<%= sale.id %>">
               <button class="accordion-button <%= index === 0 ? '' : 'collapsed' %>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%= sale.id %>" aria-expanded="<%= index === 0 ? 'true' : 'false' %>" aria-controls="collapse<%= sale.id %>">
                 <strong>Bill #<%= sale.bill_number %></strong> –
-                <% if (sale.sale_date) { %>
-                  <%= new Date(sale.sale_date).toLocaleDateString() %>
-                <% } else { %>
-                  <%= new Date(sale.created_at).toLocaleDateString() %>
-                <% } %>
+                <%= sale.sale_date ? new Date(sale.sale_date).toLocaleDateString() : new Date(sale.created_at).toLocaleDateString() %>
                 | Total: ₹<%= sale.total_amount.toFixed(2) %>
                 | Profit: ₹<%= sale.profit.toFixed(2) %>
                 | Payment: <%= sale.payment_method || 'Cash' %>
                 <% if (sale.customer_name) { %> | Customer: <%= sale.customer_name %><% } %>
-
-                <!-- Status indicators -->
-                <% if (sale.total_amount < 0) { %>
-                  | <span class="text-warning fw-bold">Return Bill</span>
-                <% } else if (sale.returned == 1) { %>
-                  | <span class="text-danger fw-bold">Returned</span>
-                <% } %>
+                <% if (sale.total_amount < 0) { %> | <span class="text-warning fw-bold">Return Bill</span><% } %>
+                <% if (sale.returned == 1 && sale.total_amount >= 0) { %> | <span class="text-danger fw-bold">Returned</span><% } %>
               </button>
             </h2>
             <div id="collapse<%= sale.id %>" class="accordion-collapse collapse <%= index === 0 ? 'show' : '' %>" aria-labelledby="heading<%= sale.id %>" data-bs-parent="#salesAccordion">
               <div class="accordion-body">
                 <table class="table table-sm">
                   <thead>
-                      <th>Product</th>
-                      <th>Quantity</th>
-                      <th>Unit Price</th>
-                      <th>Total</th>
-                      <th>Profit</th>
+                    <tr><th>Product</th><th>Size</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Profit</th></tr>
                   </thead>
                   <tbody>
                     <% sale.items.forEach(item => { %>
-                        <tr>
-                         <td><%= item.product_name %></td>
-                         <td><%= item.quantity %></td>
-                         <td>₹<%= item.price_at_sale.toFixed(2) %></td>
-                         <td>₹<%= (item.price_at_sale * item.quantity).toFixed(2) %></td>
-                         <td>₹<%= item.profit_on_item.toFixed(2) %></td>
-                        </tr>
+                      <tr>
+                        <td><%= item.product_name %><br><small class="text-muted"><%= item.product_code %></small></td>
+                        <td><%= item.size || '—' %></td>
+                        <td><%= item.quantity %></td>
+                        <td>₹<%= item.price_at_sale.toFixed(2) %></td>
+                        <td>₹<%= (item.price_at_sale * item.quantity).toFixed(2) %></td>
+                        <td>₹<%= item.profit_on_item.toFixed(2) %></td>
+                      </tr>
                     <% }); %>
-
-                    <!-- Discount row (if discount was applied) -->
-                    <% if (sale.discount_amount && sale.discount_amount > 0) { %>
-                      <tr class="discount-row" style="color: #dc3545;">
-                        <td colspan="4" style="text-align: right;"><strong>Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</strong></td>
+                    <% if (sale.discount_amount > 0) { %>
+                      <tr class="text-danger">
+                        <td colspan="5" class="text-end"><strong>Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</strong></td>
                         <td>-₹<%= sale.discount_amount.toFixed(2) %></td>
                       </tr>
                     <% } %>
-
-                    <!-- Final total row (profit after discount) -->
-                    <tr class="total-row" style="font-weight: bold;">
-                      <td colspan="4" style="text-align: right;">Total Profit after Discount:</td>
+                    <tr class="fw-bold">
+                      <td colspan="5" class="text-end">Total Profit after Discount:</td>
                       <td>₹<%= sale.profit.toFixed(2) %></td>
                     </tr>
                   </tbody>
@@ -107,22 +90,21 @@
     <% } %>
   </div>
 
-  <!-- Return Date Modal -->
   <div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <form id="returnForm" method="POST" action="">
           <div class="modal-header">
-            <h5 class="modal-title" id="returnModalLabel">Return Sale</h5>
+            <h5 class="modal-title">Return Sale</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
               <label for="returnDate" class="form-label">Return Date (optional)</label>
-              <input type="date" class="form-control" id="returnDate" name="return_date">
+              <input type="date" class="form-control" id="returnDate" name="return_date" value="<%= new Date().toISOString().split('T')[0] %>">
               <div class="form-text">Leave blank to use today's date.</div>
             </div>
-            <p>Are you sure you want to return this sale? This will restock the items and create a return bill.</p>
+            <p>Are you sure you want to return this sale? This will restock items and create a return bill.</p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -137,64 +119,46 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Search functionality
-    const searchInput = document.getElementById('billSearch');
+    const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const clearBtn = document.getElementById('clearSearchBtn');
     const searchStatus = document.getElementById('searchStatus');
     const accordionItems = document.querySelectorAll('.accordion-item');
 
-    function filterSales() {
-      const searchTerm = searchInput.value.trim().toLowerCase();
-      let visibleCount = 0;
-
-      accordionItems.forEach(item => {
-        const billNumber = item.getAttribute('data-bill-number');
-        if (searchTerm === '' || billNumber.includes(searchTerm)) {
-          item.style.display = '';
-          visibleCount++;
-        } else {
-          item.style.display = 'none';
-        }
-      });
-
-      if (searchTerm === '') {
+    function updateSearchStatus() {
+      const term = searchInput.value.trim();
+      const visible = document.querySelectorAll('.accordion-item:not([style*="display: none"])').length;
+      if (term === '') {
         searchStatus.textContent = '';
       } else {
-        searchStatus.textContent = `Found ${visibleCount} sale${visibleCount !== 1 ? 's' : ''} matching "${searchTerm}".`;
+        searchStatus.textContent = `Found ${visible} sale${visible !== 1 ? 's' : ''} matching "${term}".`;
       }
+    }
+
+    function performSearch() {
+      const term = searchInput.value.trim();
+      const url = new URL('/sale/sales', window.location.origin);
+      if (term) url.searchParams.set('search', term);
+      window.location.href = url.toString();
     }
 
     function clearSearch() {
       searchInput.value = '';
-      filterSales();
+      window.location.href = '/sale/sales';
     }
 
-    searchBtn.addEventListener('click', filterSales);
+    searchBtn.addEventListener('click', performSearch);
     clearBtn.addEventListener('click', clearSearch);
-    searchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        filterSales();
-      }
-    });
+    searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
 
-    filterSales();
+    updateSearchStatus();
 
-    // Return modal handling
+    // Return modal
     const returnModal = new bootstrap.Modal(document.getElementById('returnModal'));
     const returnForm = document.getElementById('returnForm');
-    const returnDateInput = document.getElementById('returnDate');
-
-    // Set default date to today (YYYY-MM-DD)
-    const today = new Date().toISOString().split('T')[0];
-    returnDateInput.value = today;
-
-    // Handle click on any return button
     document.querySelectorAll('.return-sale-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const saleId = btn.getAttribute('data-sale-id');
-        // Set form action to the correct endpoint
-        returnForm.action = `/sale/return/${saleId}`;
+      btn.addEventListener('click', () => {
+        returnForm.action = `/sale/return/${btn.dataset.saleId}`;
         returnModal.show();
       });
     });
