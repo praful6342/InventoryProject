@@ -307,7 +307,7 @@ router.get('/sales', (req, res) => {
   });
 });
 
-// Sold products list
+// Sold products list with discount allocation
 router.get('/sold-products', async (req, res) => {
   const { start_date, end_date, search, page = 1, limit = 50 } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -325,6 +325,7 @@ router.get('/sold-products', async (req, res) => {
   }
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
+  // Count total items
   const countQuery = `
   SELECT COUNT(*) as total
   FROM sale_items si
@@ -338,6 +339,7 @@ router.get('/sold-products', async (req, res) => {
   const totalItems = countResult.total;
   const totalPages = Math.ceil(totalItems / limit);
 
+  // Main query with discount calculation
   const query = `
   SELECT
   si.id,
@@ -348,33 +350,48 @@ router.get('/sold-products', async (req, res) => {
   si.size,
   si.quantity,
   si.price_at_sale,
-  (si.quantity * si.price_at_sale) as total_amount
-  FROM sale_items si
-  JOIN sales s ON si.sale_id = s.id
-  JOIN products p ON si.product_id = p.id
-  ${whereClause}
-  ORDER BY ${effectiveDate} DESC, s.id DESC
-  LIMIT ? OFFSET ?
-  `;
-  params.push(parseInt(limit), offset);
+  (si.quantity * si.price_at_sale) as original_total,
+           s.total_amount as sale_final_total,
+           s.discount_type,
+           s.discount_value,
+           s.discount_amount,
+           CASE
+           WHEN s.discount_amount > 0 AND s.total_amount + s.discount_amount > 0
+           THEN ROUND((si.quantity * si.price_at_sale) * 1.0 / (s.total_amount + s.discount_amount) * s.discount_amount, 2)
+           ELSE 0
+           END as discount_allocated,
+           ROUND((si.quantity * si.price_at_sale) -
+           CASE
+           WHEN s.discount_amount > 0 AND s.total_amount + s.discount_amount > 0
+           THEN (si.quantity * si.price_at_sale) * 1.0 / (s.total_amount + s.discount_amount) * s.discount_amount
+           ELSE 0
+           END, 2) as net_total
+           FROM sale_items si
+           JOIN sales s ON si.sale_id = s.id
+           JOIN products p ON si.product_id = p.id
+           ${whereClause}
+           ORDER BY ${effectiveDate} DESC, s.id DESC
+           LIMIT ? OFFSET ?
+           `;
+           params.push(parseInt(limit), offset);
 
-  const items = await new Promise((resolve, reject) => {
-    db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows));
-  });
+           const items = await new Promise((resolve, reject) => {
+             db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows));
+           });
 
-  if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
-    res.json({ items, totalPages, currentPage: parseInt(page), totalItems });
-  } else {
-    res.render('sold-products', {
-      items,
-      start_date: start_date || '',
-      end_date: end_date || '',
-      search: search || '',
-      currentPage: parseInt(page),
-               totalPages,
-               totalItems
-    });
-  }
+           if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
+             res.json({ items, totalPages, currentPage: parseInt(page), totalItems });
+           } else {
+             res.render('sold-products', {
+               items,
+               start_date: start_date || '',
+               end_date: end_date || '',
+               search: search || '',
+               currentPage: parseInt(page),
+                        totalPages,
+                        totalItems
+             });
+           }
 });
 
 module.exports = router;
