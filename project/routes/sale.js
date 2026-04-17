@@ -211,7 +211,12 @@ router.post('/checkout', (req, res) => {
 router.post('/return/:saleId', (req, res) => {
   const saleId = req.params.saleId;
   const returnDate = req.body.return_date || null;
-  const returnReason = req.body.return_reason || null;   // <-- NEW: capture return reason
+  const returnReason = req.body.return_reason;
+
+  // Validate return reason (required)
+  if (!returnReason || returnReason.trim() === '') {
+    return res.status(400).send('Return reason is required');
+  }
 
   db.get('SELECT total_amount, profit, customer_id, returned FROM sales WHERE id = ?', [saleId], (err, originalSale) => {
     if (err) return res.status(500).send('Database error');
@@ -229,7 +234,7 @@ router.post('/return/:saleId', (req, res) => {
         db.run(
           `INSERT INTO sales (customer_id, total_amount, profit, bill_number, payment_method, returned, sale_date, return_reason)
           VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-               [originalSale.customer_id, -originalSale.total_amount, -originalSale.profit, billNumber, 'Return', returnDate, returnReason],
+               [originalSale.customer_id, -originalSale.total_amount, -originalSale.profit, billNumber, 'Return', returnDate, returnReason.trim()],
                function(err) {
                  if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating return sale'); }
                  const returnSaleId = this.lastID;
