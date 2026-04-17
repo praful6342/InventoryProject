@@ -89,6 +89,11 @@
         <% } else { %>
           <p><strong>Customer:</strong> Walk-in Customer</p>
         <% } %>
+
+        <!-- NEW: Display return reason if this is a return bill and a reason was provided -->
+        <% if (sale.total_amount < 0 && sale.return_reason) { %>
+          <p><strong>Return Reason:</strong> <%= sale.return_reason %></p>
+        <% } %>
       </div>
 
       <table class="bill-table">
