@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { isAdmin } = require('../middleware/auth');
 
 function generateBillNumber() {
   const date = new Date();
@@ -325,7 +326,6 @@ router.get('/sold-products', async (req, res) => {
   }
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-  // Count total items
   const countQuery = `
   SELECT COUNT(*) as total
   FROM sale_items si
@@ -339,7 +339,6 @@ router.get('/sold-products', async (req, res) => {
   const totalItems = countResult.total;
   const totalPages = Math.ceil(totalItems / limit);
 
-  // Main query with discount calculation
   const query = `
   SELECT
   si.id,
@@ -392,6 +391,275 @@ router.get('/sold-products', async (req, res) => {
                         totalItems
              });
            }
+});
+
+// ==================== EDIT SALE ====================
+// GET /sale/edit/:id - show edit form (admin only)
+router.get('/edit/:id', isAdmin, (req, res) => {
+  const saleId = req.params.id;
+
+  db.get(`
+  SELECT s.*, c.name as customer_name, c.phone as customer_phone, c.email as customer_email
+  FROM sales s
+  LEFT JOIN customers c ON s.customer_id = c.id
+  WHERE s.id = ?
+  `, [saleId], (err, sale) => {
+    if (err) return res.status(500).send('Database error');
+    if (!sale) return res.status(404).send('Sale not found');
+    if (sale.returned === 1) return res.status(400).send('Returned sales cannot be edited');
+    if (sale.total_amount < 0) return res.status(400).send('Return bills cannot be edited');
+
+    db.all(`
+    SELECT si.*, p.name as product_name, p.product_code, p.selling_price as current_price,
+    pv.stock as available_stock
+    FROM sale_items si
+    JOIN products p ON si.product_id = p.id
+    LEFT JOIN product_variants pv ON pv.product_id = p.id AND pv.size = si.size
+    WHERE si.sale_id = ?
+    `, [saleId], (err, items) => {
+      if (err) return res.status(500).send('Database error');
+
+      // Fetch all products for dropdown
+      db.all('SELECT id, name, product_code, selling_price, has_sizes FROM products ORDER BY name', (err, products) => {
+        if (err) return res.status(500).send('Database error');
+        res.render('edit-sale', { sale, items, products });
+      });
+    });
+  });
+});
+
+// POST /sale/update/:id - process edit (admin only)
+router.post('/update/:id', isAdmin, (req, res) => {
+  const saleId = req.params.id;
+  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payment_method, items } = req.body;
+
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).send('At least one item is required');
+  }
+
+  // Parse items
+  const newItems = items.map(item => ({
+    product_id: parseInt(item.product_id),
+                                      size: item.size,
+                                      quantity: parseInt(item.quantity),
+                                      price_at_sale: parseFloat(item.price_at_sale)
+  }));
+
+  // Get original sale for stock reversal and comparison
+  db.get('SELECT * FROM sales WHERE id = ?', [saleId], (err, originalSale) => {
+    if (err) return res.status(500).send('Database error');
+    if (!originalSale) return res.status(404).send('Sale not found');
+    if (originalSale.returned === 1) return res.status(400).send('Returned sales cannot be edited');
+    if (originalSale.total_amount < 0) return res.status(400).send('Return bills cannot be edited');
+
+    db.all('SELECT * FROM sale_items WHERE sale_id = ?', [saleId], (err, oldItems) => {
+      if (err) return res.status(500).send('Database error');
+
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        // Step 1: Restore stock from old items
+        let stockRestored = 0;
+        oldItems.forEach(item => {
+          db.get('SELECT id FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
+            if (err || !variant) {
+              db.run('ROLLBACK');
+              return res.status(500).send(`Variant not found for product ${item.product_id} size ${item.size}`);
+            }
+            db.run('UPDATE product_variants SET stock = stock + ? WHERE id = ?', [item.quantity, variant.id], err => {
+              if (err) { db.run('ROLLBACK'); return res.status(500).send('Error restoring stock'); }
+              if (++stockRestored === oldItems.length) {
+                proceedAfterRestore();
+              }
+            });
+          });
+        });
+
+        const proceedAfterRestore = () => {
+          // Step 2: Calculate new totals and validate stock
+          let preDiscountTotal = 0;
+          let profitTotal = 0;
+          let itemsValidated = 0;
+
+          newItems.forEach(item => {
+            db.get('SELECT cost_price FROM products WHERE id = ?', [item.product_id], (err, product) => {
+              if (err || !product) {
+                db.run('ROLLBACK');
+                return res.status(500).send('Product not found');
+              }
+              db.get('SELECT stock FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
+                if (err || !variant) {
+                  db.run('ROLLBACK');
+                  return res.status(500).send(`Size ${item.size} not available for product`);
+                }
+                if (variant.stock < item.quantity) {
+                  db.run('ROLLBACK');
+                  return res.status(400).send(`Insufficient stock for product size ${item.size}`);
+                }
+                const cost = product.cost_price;
+                const itemTotal = item.price_at_sale * item.quantity;
+                preDiscountTotal += itemTotal;
+                profitTotal += (item.price_at_sale - cost) * item.quantity;
+
+                if (++itemsValidated === newItems.length) {
+                  applyDiscountAndUpdate();
+                }
+              });
+            });
+          });
+
+          const applyDiscountAndUpdate = () => {
+            let discountAmount = 0;
+            let finalTotal = preDiscountTotal;
+            if (discount_type && discount_value && parseFloat(discount_value) > 0) {
+              const discVal = parseFloat(discount_value);
+              if (discount_type === 'percentage' && discVal <= 100) {
+                discountAmount = preDiscountTotal * (discVal / 100);
+              } else if (discount_type === 'fixed' && discVal <= preDiscountTotal) {
+                discountAmount = discVal;
+              } else {
+                db.run('ROLLBACK');
+                return res.status(400).send('Invalid discount value');
+              }
+              finalTotal -= discountAmount;
+              profitTotal -= discountAmount;
+            }
+
+            // Update customer if name provided
+            let customerId = originalSale.customer_id;
+            const updateSaleRecord = (custId) => {
+              db.run(
+                `UPDATE sales SET customer_id = ?, total_amount = ?, profit = ?, discount_type = ?, discount_value = ?, discount_amount = ?, sale_date = ?, payment_method = ?
+                WHERE id = ?`,
+                [custId, finalTotal, profitTotal, discount_type || null, discount_value || null, discountAmount, sale_date || null, payment_method || 'Cash', saleId],
+                err => {
+                  if (err) { db.run('ROLLBACK'); return res.status(500).send('Error updating sale'); }
+
+                  // Delete old items
+                  db.run('DELETE FROM sale_items WHERE sale_id = ?', [saleId], err => {
+                    if (err) { db.run('ROLLBACK'); return res.status(500).send('Error removing old items'); }
+
+                    // Insert new items and deduct stock
+                    let itemsInserted = 0;
+                    newItems.forEach(item => {
+                      db.get('SELECT cost_price FROM products WHERE id = ?', [item.product_id], (err, product) => {
+                        const profitOnItem = (item.price_at_sale - product.cost_price) * item.quantity;
+                        db.run(
+                          `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item, size)
+                          VALUES (?, ?, ?, ?, ?, ?)`,
+                               [saleId, item.product_id, item.quantity, item.price_at_sale, profitOnItem, item.size],
+                               err => {
+                                 if (err) { db.run('ROLLBACK'); return res.status(500).send('Error inserting sale items'); }
+
+                                 // Deduct stock
+                                 db.get('SELECT id FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
+                                   if (err || !variant) { db.run('ROLLBACK'); return res.status(500).send('Variant not found'); }
+                                   db.run('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [item.quantity, variant.id], err => {
+                                     if (err) { db.run('ROLLBACK'); return res.status(500).send('Error deducting stock'); }
+                                     if (++itemsInserted === newItems.length) {
+                                       db.run('COMMIT', err => {
+                                         if (err) return res.status(500).send('Error finalizing update');
+                                         if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
+                                         res.redirect(`/bill/${saleId}`);
+                                       });
+                                     }
+                                   });
+                                 });
+                               }
+                        );
+                      });
+                    });
+                  });
+                }
+              );
+            };
+
+            if (customerName) {
+              // Update or insert customer
+              if (customerId) {
+                db.run(
+                  'UPDATE customers SET name = ?, phone = ?, email = ? WHERE id = ?',
+                  [customerName, customerPhone || null, customerEmail || null, customerId],
+                  err => {
+                    if (err) { db.run('ROLLBACK'); return res.status(500).send('Error updating customer'); }
+                    updateSaleRecord(customerId);
+                  }
+                );
+              } else {
+                db.run(
+                  'INSERT INTO customers (name, phone, email) VALUES (?, ?, ?)',
+                       [customerName, customerPhone || null, customerEmail || null],
+                       function(err) {
+                         if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating customer'); }
+                         updateSaleRecord(this.lastID);
+                       }
+                );
+              }
+            } else {
+              updateSaleRecord(customerId);
+            }
+          };
+        };
+      });
+    });
+  });
+});
+
+// POST /sale/delete/:id - delete a sale (admin only)
+router.post('/delete/:id', isAdmin, (req, res) => {
+  const saleId = req.params.id;
+
+  db.get('SELECT * FROM sales WHERE id = ?', [saleId], (err, sale) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (!sale) return res.status(404).json({ error: 'Sale not found' });
+
+    db.all('SELECT * FROM sale_items WHERE sale_id = ?', [saleId], (err, items) => {
+      if (err) return res.status(500).json({ error: 'Database error' });
+
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        // Restock items
+        let itemsProcessed = 0;
+        if (items.length === 0) {
+          deleteSaleRecord();
+        } else {
+          items.forEach(item => {
+            db.get('SELECT id FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
+              if (err || !variant) {
+                db.run('ROLLBACK');
+                return res.status(500).json({ error: 'Variant not found' });
+              }
+              db.run('UPDATE product_variants SET stock = stock + ? WHERE id = ?', [item.quantity, variant.id], err => {
+                if (err) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Error restoring stock' }); }
+                if (++itemsProcessed === items.length) {
+                  deleteSaleRecord();
+                }
+              });
+            });
+          });
+        }
+
+        const deleteSaleRecord = () => {
+          db.run('DELETE FROM sale_items WHERE sale_id = ?', [saleId], err => {
+            if (err) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Error deleting sale items' }); }
+            db.run('DELETE FROM sales WHERE id = ?', [saleId], err => {
+              if (err) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Error deleting sale' }); }
+              db.run('COMMIT', err => {
+                if (err) return res.status(500).json({ error: 'Error committing deletion' });
+                if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
+                if (req.xhr || req.headers.accept.includes('json')) {
+                  res.json({ success: true });
+                } else {
+                  res.redirect('/sale/sales');
+                }
+              });
+            });
+          });
+        };
+      });
+    });
+  });
 });
 
 module.exports = router;

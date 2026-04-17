@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Sale #<%= sale.bill_number %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/custom.css">
+  <script src="/js/app.js" defer></script>
+  <style>
+    .edit-title {
+      font-weight: 700;
+      color: #2563eb;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .item-row {
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    .product-search-container {
+      position: relative;
+    }
+    .product-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    .suggestion-item {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .suggestion-item:hover {
+      background: #e0e7ef;
+    }
+    .btn-remove-item {
+      margin-top: 32px;
+    }
+    .cart-summary {
+      background: #f1f5f9;
+      border-radius: 12px;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('partials/navbar', { currentPage: 'sales' }) %>
+
+  <div class="container mt-4">
+    <h1 class="edit-title"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Sale: <%= sale.bill_number %></h1>
+
+    <form id="editSaleForm" method="POST" action="/sale/update/<%= sale.id %>">
+      <div class="row">
+        <!-- Left Column: Items -->
+        <div class="col-lg-8">
+          <div class="card mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0"><i class="fa-solid fa-basket-shopping me-2"></i>Sale Items</h5>
+            </div>
+            <div class="card-body">
+              <div id="items-container">
+                <% items.forEach((item, index) => { %>
+                  <div class="item-row" data-index="<%= index %>">
+                    <div class="row g-2 align-items-end">
+                      <div class="col-md-5">
+                        <label class="form-label">Product</label>
+                        <select class="form-select product-select" name="items[<%= index %>][product_id]" required>
+                          <option value="">-- Select Product --</option>
+                          <% products.forEach(p => { %>
+                            <option value="<%= p.id %>" data-price="<%= p.selling_price %>" data-has-sizes="<%= p.has_sizes %>" <%= p.id === item.product_id ? 'selected' : '' %>><%= p.name %> (<%= p.product_code %>)</option>
+                          <% }); %>
+                        </select>
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Size</label>
+                        <select class="form-select size-select" name="items[<%= index %>][size]" <%= item.size ? '' : 'disabled' %>>
+                          <option value="ONESIZE" <%= item.size === 'ONESIZE' ? 'selected' : '' %>>One Size</option>
+                          <option value="XS" <%= item.size === 'XS' ? 'selected' : '' %>>XS</option>
+                          <option value="S" <%= item.size === 'S' ? 'selected' : '' %>>S</option>
+                          <option value="M" <%= item.size === 'M' ? 'selected' : '' %>>M</option>
+                          <option value="L" <%= item.size === 'L' ? 'selected' : '' %>>L</option>
+                          <option value="XL" <%= item.size === 'XL' ? 'selected' : '' %>>XL</option>
+                          <option value="2XL" <%= item.size === '2XL' ? 'selected' : '' %>>2XL</option>
+                          <option value="3XL" <%= item.size === '3XL' ? 'selected' : '' %>>3XL</option>
+                          <option value="4XL" <%= item.size === '4XL' ? 'selected' : '' %>>4XL</option>
+                          <option value="5XL" <%= item.size === '5XL' ? 'selected' : '' %>>5XL</option>
+                        </select>
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" class="form-control quantity-input" name="items[<%= index %>][quantity]" min="1" value="<%= item.quantity %>" required>
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Price (₹)</label>
+                        <input type="number" step="0.01" class="form-control price-input" name="items[<%= index %>][price_at_sale]" value="<%= item.price_at_sale %>" required>
+                      </div>
+                      <div class="col-md-1">
+                        <button type="button" class="btn btn-danger btn-remove-item"><i class="fa-solid fa-trash"></i></button>
+                      </div>
+                    </div>
+                    <div class="row mt-2">
+                      <div class="col-12">
+                        <small class="text-muted stock-info"></small>
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+              <button type="button" class="btn btn-outline-primary mt-3" id="addItemBtn">
+                <i class="fa-solid fa-plus"></i> Add Item
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Summary & Customer -->
+        <div class="col-lg-4">
+          <div class="card mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0"><i class="fa-solid fa-user me-2"></i>Customer Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label for="customerName" class="form-label">Customer Name</label>
+                <input type="text" class="form-control" id="customerName" name="customerName" value="<%= sale.customer_name || '' %>" autocomplete="off">
+              </div>
+              <div class="mb-3">
+                <label for="customerPhone" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="customerPhone" name="customerPhone" value="<%= sale.customer_phone || '' %>" autocomplete="off">
+              </div>
+              <div class="mb-3">
+                <label for="customerEmail" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="customerEmail" name="customerEmail" value="<%= sale.customer_email || '' %>" autocomplete="off">
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0"><i class="fa-solid fa-tag me-2"></i>Discount & Payment</h5>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">Discount Type</label>
+                <div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="discount_type" id="discountNone" value="" <%= !sale.discount_type ? 'checked' : '' %>>
+                    <label class="form-check-label" for="discountNone">None</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="discount_type" id="discountPercent" value="percentage" <%= sale.discount_type === 'percentage' ? 'checked' : '' %>>
+                    <label class="form-check-label" for="discountPercent">Percentage (%)</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="discount_type" id="discountFixed" value="fixed" <%= sale.discount_type === 'fixed' ? 'checked' : '' %>>
+                    <label class="form-check-label" for="discountFixed">Fixed (₹)</label>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3" id="discountValueContainer" style="display: <%= sale.discount_type ? 'block' : 'none' %>;">
+                <label for="discount_value" class="form-label">Discount Value</label>
+                <input type="number" step="0.01" class="form-control" id="discount_value" name="discount_value" value="<%= sale.discount_value || '' %>" min="0">
+              </div>
+              <div class="mb-3">
+                <label for="sale_date" class="form-label">Sale Date</label>
+                <input type="date" class="form-control" id="sale_date" name="sale_date" value="<%= sale.sale_date ? sale.sale_date.split('T')[0] : '' %>">
+              </div>
+              <div class="mb-3">
+                <label for="payment_method" class="form-label">Payment Method</label>
+                <select class="form-select" id="payment_method" name="payment_method">
+                  <option value="Cash" <%= sale.payment_method === 'Cash' ? 'selected' : '' %>>Cash</option>
+                  <option value="UPI" <%= sale.payment_method === 'UPI' ? 'selected' : '' %>>UPI</option>
+                  <option value="Card" <%= sale.payment_method === 'Card' ? 'selected' : '' %>>Card</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="cart-summary">
+            <h5>Summary</h5>
+            <table class="table table-sm">
+              <tr>
+                <td>Subtotal:</td>
+                <td class="text-end" id="subtotalDisplay">₹0.00</td>
+              </tr>
+              <tr id="discountRow" style="display: <%= sale.discount_amount > 0 ? 'table-row' : 'none' %>;">
+                <td>Discount:</td>
+                <td class="text-end text-danger" id="discountDisplay">-₹0.00</td>
+              </tr>
+              <tr class="fw-bold">
+                <td>Total:</td>
+                <td class="text-end" id="totalDisplay">₹0.00</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+        <a href="/bill/<%= sale.id %>" class="btn btn-secondary btn-lg">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <%- include('partials/footer') %>
+
+  <!-- Hidden template for new item row -->
+  <template id="itemRowTemplate">
+    <div class="item-row">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label">Product</label>
+          <select class="form-select product-select" name="items[__INDEX__][product_id]" required>
+            <option value="">-- Select Product --</option>
+            <% products.forEach(p => { %>
+              <option value="<%= p.id %>" data-price="<%= p.selling_price %>" data-has-sizes="<%= p.has_sizes %>"><%= p.name %> (<%= p.product_code %>)</option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Size</label>
+          <select class="form-select size-select" name="items[__INDEX__][size]" disabled>
+            <option value="ONESIZE">One Size</option>
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="2XL">2XL</option>
+            <option value="3XL">3XL</option>
+            <option value="4XL">4XL</option>
+            <option value="5XL">5XL</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Quantity</label>
+          <input type="number" class="form-control quantity-input" name="items[__INDEX__][quantity]" min="1" value="1" required>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Price (₹)</label>
+          <input type="number" step="0.01" class="form-control price-input" name="items[__INDEX__][price_at_sale]" value="" required>
+        </div>
+        <div class="col-md-1">
+          <button type="button" class="btn btn-danger btn-remove-item"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+      <div class="row mt-2">
+        <div class="col-12">
+          <small class="text-muted stock-info"></small>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Product data for quick lookup
+    const productsData = <%- JSON.stringify(products) %>;
+    const productMap = {};
+    productsData.forEach(p => { productMap[p.id] = p; });
+
+    // Helper to re-index items after removal
+    function reindexItems() {
+      document.querySelectorAll('.item-row').forEach((row, idx) => {
+        row.dataset.index = idx;
+        row.querySelectorAll('[name]').forEach(input => {
+          const name = input.getAttribute('name');
+          if (name) {
+            input.setAttribute('name', name.replace(/items\[\d+\]/, `items[${idx}]`));
+          }
+        });
+      });
+    }
+
+    // Update summary calculations
+    function updateSummary() {
+      let subtotal = 0;
+      document.querySelectorAll('.item-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('.quantity-input').value) || 0;
+        const price = parseFloat(row.querySelector('.price-input').value) || 0;
+        subtotal += qty * price;
+      });
+
+      const discountType = document.querySelector('input[name="discount_type"]:checked')?.value;
+      const discountValue = parseFloat(document.getElementById('discount_value').value) || 0;
+      let discountAmount = 0;
+      if (discountType === 'percentage') {
+        discountAmount = subtotal * (discountValue / 100);
+      } else if (discountType === 'fixed') {
+        discountAmount = Math.min(discountValue, subtotal);
+      }
+      const total = subtotal - discountAmount;
+
+      document.getElementById('subtotalDisplay').textContent = '₹' + subtotal.toFixed(2);
+      document.getElementById('discountDisplay').textContent = '-₹' + discountAmount.toFixed(2);
+      document.getElementById('totalDisplay').textContent = '₹' + total.toFixed(2);
+      document.getElementById('discountRow').style.display = discountAmount > 0 ? 'table-row' : 'none';
+    }
+
+    // Fetch stock info for a product+size and display
+    async function updateStockInfo(row) {
+      const productSelect = row.querySelector('.product-select');
+      const sizeSelect = row.querySelector('.size-select');
+      const stockInfo = row.querySelector('.stock-info');
+      const productId = productSelect.value;
+      const size = sizeSelect.value;
+      if (!productId || !size) {
+        stockInfo.textContent = '';
+        return;
+      }
+      try {
+        const res = await fetch(`/api/products/${productId}`);
+        const product = await res.json();
+        const variant = product.variants?.find(v => v.size === size);
+        if (variant) {
+          stockInfo.textContent = `Available stock: ${variant.stock}`;
+          const qtyInput = row.querySelector('.quantity-input');
+          if (parseInt(qtyInput.value) > variant.stock) {
+            qtyInput.setCustomValidity(`Only ${variant.stock} available`);
+          } else {
+            qtyInput.setCustomValidity('');
+          }
+        } else {
+          stockInfo.textContent = 'Size not available';
+          row.querySelector('.quantity-input').setCustomValidity('Size not available');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Handle product selection change
+    function handleProductChange(row) {
+      const productSelect = row.querySelector('.product-select');
+      const sizeSelect = row.querySelector('.size-select');
+      const priceInput = row.querySelector('.price-input');
+      const selectedOption = productSelect.options[productSelect.selectedIndex];
+      const hasSizes = selectedOption.dataset.hasSizes === '1';
+      const defaultPrice = selectedOption.dataset.price || '0';
+
+      priceInput.value = defaultPrice;
+
+      if (hasSizes) {
+        sizeSelect.disabled = false;
+        // Clear non-size options
+        Array.from(sizeSelect.options).forEach(opt => {
+          if (opt.value === 'ONESIZE') opt.style.display = 'none';
+          else opt.style.display = '';
+        });
+        if (sizeSelect.value === 'ONESIZE') sizeSelect.value = '';
+      } else {
+        sizeSelect.disabled = false;
+        Array.from(sizeSelect.options).forEach(opt => {
+          if (opt.value === 'ONESIZE') opt.style.display = '';
+          else opt.style.display = 'none';
+        });
+        sizeSelect.value = 'ONESIZE';
+      }
+      updateStockInfo(row);
+      updateSummary();
+    }
+
+    // Attach event listeners to a row
+    function bindRowEvents(row) {
+      const productSelect = row.querySelector('.product-select');
+      const sizeSelect = row.querySelector('.size-select');
+      const qtyInput = row.querySelector('.quantity-input');
+      const priceInput = row.querySelector('.price-input');
+      const removeBtn = row.querySelector('.btn-remove-item');
+
+      productSelect.addEventListener('change', () => handleProductChange(row));
+      sizeSelect.addEventListener('change', () => {
+        updateStockInfo(row);
+        updateSummary();
+      });
+      qtyInput.addEventListener('input', () => {
+        updateStockInfo(row);
+        updateSummary();
+      });
+      priceInput.addEventListener('input', updateSummary);
+      removeBtn.addEventListener('click', () => {
+        if (document.querySelectorAll('.item-row').length > 1) {
+          row.remove();
+          reindexItems();
+          updateSummary();
+        } else {
+          showToast('At least one item is required', 'warning');
+        }
+      });
+    }
+
+    // Add new item row
+    document.getElementById('addItemBtn').addEventListener('click', () => {
+      const container = document.getElementById('items-container');
+      const template = document.getElementById('itemRowTemplate').content.cloneNode(true);
+      const newIndex = document.querySelectorAll('.item-row').length;
+      template.querySelectorAll('[name]').forEach(el => {
+        el.setAttribute('name', el.getAttribute('name').replace('__INDEX__', newIndex));
+      });
+      container.appendChild(template);
+      const newRow = container.lastElementChild;
+      bindRowEvents(newRow);
+      reindexItems();
+      updateSummary();
+    });
+
+    // Initialize existing rows
+    document.querySelectorAll('.item-row').forEach(row => bindRowEvents(row));
+
+    // Discount toggle
+    const discountRadios = document.querySelectorAll('input[name="discount_type"]');
+    const discountValueContainer = document.getElementById('discountValueContainer');
+    discountRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        discountValueContainer.style.display = radio.value ? 'block' : 'none';
+        updateSummary();
+      });
+    });
+    document.getElementById('discount_value').addEventListener('input', updateSummary);
+
+    // Initial summary update
+    updateSummary();
+    // Trigger stock info for existing items
+    document.querySelectorAll('.item-row').forEach(row => {
+      if (row.querySelector('.product-select').value) {
+        updateStockInfo(row);
+      }
+    });
+
+    // Form validation before submit
+    document.getElementById('editSaleForm').addEventListener('submit', (e) => {
+      let valid = true;
+      document.querySelectorAll('.item-row').forEach(row => {
+        const qtyInput = row.querySelector('.quantity-input');
+        if (!qtyInput.checkValidity()) {
+          valid = false;
+          qtyInput.reportValidity();
+        }
+      });
+      if (!valid) e.preventDefault();
+    });
+  </script>
+</body>
+</html>
