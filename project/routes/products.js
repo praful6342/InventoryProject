@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const QRCode = require('qrcode');
-const { isAdmin } = require('../middleware/auth'); // Import isAdmin middleware
+const { isAdmin } = require('../middleware/auth');
 
 // Helper: generate product code from category, name
 function generateProductCode(category, name) {
@@ -35,7 +35,7 @@ router.post('/add', isAdmin, (req, res) => {
     sizes,
     has_sizes,
     stock,
-    created_at // optional manual date
+    created_at
   } = req.body;
 
   // Server-side validation for required fields
@@ -43,15 +43,24 @@ router.post('/add', isAdmin, (req, res) => {
     return res.status(400).json({ error: 'Missing required fields: category, name, supplier, cost price, margin percent' });
   }
 
+  // Validate created_at is provided and is a valid date
+  if (!created_at) {
+    return res.status(400).json({ error: 'Added date is required' });
+  }
+  const createdDate = new Date(created_at);
+  if (isNaN(createdDate.getTime())) {
+    return res.status(400).json({ error: 'Invalid date format for Added On' });
+  }
+
   const productCode = generateProductCode(category, name);
   const hasSizes = has_sizes === "on" ? 1 : 0;
 
-  // Insert with COALESCE: if created_at provided, use it; else CURRENT_TIMESTAMP
+  // Insert product with the provided created_at
   db.run(
     `INSERT INTO products
     (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, has_sizes, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
-         [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, hasSizes, created_at || null],
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, hasSizes, created_at],
          function(err) {
            if (err) {
              console.error(err);
@@ -169,12 +178,21 @@ router.post('/update/:id', isAdmin, (req, res) => {
     sizes,
     has_sizes,
     stock,
-    created_at // optional manual date
+    created_at
   } = req.body;
 
   // Server-side validation for required fields
   if (!category || !name || !supplier || !cost_price || !margin_percent) {
     return res.redirect('/products/edit/' + id + '?error=Missing required fields');
+  }
+
+  // Validate created_at is provided and is a valid date
+  if (!created_at) {
+    return res.redirect('/products/edit/' + id + '?error=Added date is required');
+  }
+  const createdDate = new Date(created_at);
+  if (isNaN(createdDate.getTime())) {
+    return res.redirect('/products/edit/' + id + '?error=Invalid date format for Added On');
   }
 
   const productCode = generateProductCode(category, name);
@@ -198,68 +216,70 @@ router.post('/update/:id', isAdmin, (req, res) => {
     }
   }
 
-  // Build update query dynamically to include created_at if provided
-  let updateQuery = `UPDATE products SET
-  product_code = ?, category = ?, name = ?, supplier = ?,
-  cost_price = ?, margin_percent = ?, margin_rs = ?, selling_price = ?, has_sizes = ?`;
-  const params = [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, hasSizes];
-
-  if (created_at) {
-    updateQuery += `, created_at = ?`;
-    params.push(created_at);
-  }
-  updateQuery += ` WHERE id = ?`;
-  params.push(id);
-
-  db.run(updateQuery, params, function(err) {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Error updating product');
-    }
-
-    // Delete old variants
-    db.run('DELETE FROM product_variants WHERE product_id = ?', [id], function(err2) {
-      if (err2) {
-        console.error('Error deleting old variants:', err2);
-        return res.status(500).send('Error updating variants');
+  // Update product including created_at
+  db.run(
+    `UPDATE products SET
+    product_code = ?,
+    category = ?,
+    name = ?,
+    supplier = ?,
+    cost_price = ?,
+    margin_percent = ?,
+    margin_rs = ?,
+    selling_price = ?,
+    has_sizes = ?,
+    created_at = ?
+    WHERE id = ?`,
+    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, hasSizes, created_at, id],
+    function(err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Error updating product');
       }
 
-      if (hasSizes) {
-        let sizeEntries = [];
-        if (Array.isArray(sizes)) {
-          sizeEntries = sizes;
-        } else if (sizes && typeof sizes === 'object') {
-          sizeEntries = Object.values(sizes);
+      // Delete old variants
+      db.run('DELETE FROM product_variants WHERE product_id = ?', [id], function(err2) {
+        if (err2) {
+          console.error('Error deleting old variants:', err2);
+          return res.status(500).send('Error updating variants');
         }
-        const validVariants = sizeEntries.filter(v => v && v.size && v.size.trim() !== '' && v.stock !== undefined && v.stock !== '');
-        let completed = 0;
-        const total = validVariants.length;
-        if (total === 0) {
-          return res.redirect('/products/' + id);
-        }
-        validVariants.forEach(variant => {
-          db.run(
-            `INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)`,
-                 [id, variant.size, variant.stock],
-                 function(err3) {
-                   if (err3) console.error('Error saving variant:', err3);
-                   completed++;
-                   if (completed === total) {
-                     res.redirect('/products/' + id);
+
+        if (hasSizes) {
+          let sizeEntries = [];
+          if (Array.isArray(sizes)) {
+            sizeEntries = sizes;
+          } else if (sizes && typeof sizes === 'object') {
+            sizeEntries = Object.values(sizes);
+          }
+          const validVariants = sizeEntries.filter(v => v && v.size && v.size.trim() !== '' && v.stock !== undefined && v.stock !== '');
+          let completed = 0;
+          const total = validVariants.length;
+          if (total === 0) {
+            return res.redirect('/products/' + id);
+          }
+          validVariants.forEach(variant => {
+            db.run(
+              `INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)`,
+                   [id, variant.size, variant.stock],
+                   function(err3) {
+                     if (err3) console.error('Error saving variant:', err3);
+                     completed++;
+                     if (completed === total) {
+                       res.redirect('/products/' + id);
+                     }
                    }
-                 }
-          );
-        });
-      } else {
-        const singleStock = parseInt(stock) || 0;
-        db.run('INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)',
-               [id, 'ONESIZE', singleStock], function(err3) {
-                 if (err3) console.error('Error saving ONESIZE variant:', err3);
-                 res.redirect('/products/' + id);
-               });
-      }
+            );
+          });
+        } else {
+          const singleStock = parseInt(stock) || 0;
+          db.run('INSERT INTO product_variants (product_id, size, stock) VALUES (?, ?, ?)',
+                 [id, 'ONESIZE', singleStock], function(err3) {
+                   if (err3) console.error('Error saving ONESIZE variant:', err3);
+                   res.redirect('/products/' + id);
+                 });
+        }
+      });
     });
-  });
 });
 
 // Print label for a product – accessible to all authenticated users

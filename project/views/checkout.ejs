@@ -52,11 +52,11 @@
               <input type="email" class="form-control" id="customerEmail" name="customerEmail" autocomplete="off">
             </div>
 
-            <!-- Sale Date (Optional) -->
+            <!-- Sale Date (Required) -->
             <div class="mb-3">
-              <label for="saleDate" class="form-label">Sale Date (Optional)</label>
-              <input type="date" class="form-control" id="saleDate" name="sale_date">
-              <small class="text-muted">If left blank, today's date and time will be used.</small>
+              <label for="saleDate" class="form-label">Sale Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" id="saleDate" name="sale_date" required>
+              <small class="text-muted">Select the date of this sale.</small>
             </div>
 
             <!-- Discount Section -->
@@ -82,7 +82,7 @@
               </div>
             </div>
 
-            <!-- Payment Method Section (NEW) -->
+            <!-- Payment Method Section -->
             <div class="card p-4 mt-3">
               <h4 class="mb-3">Payment Method</h4>
               <div class="mb-3">

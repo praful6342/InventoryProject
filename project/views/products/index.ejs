@@ -151,12 +151,12 @@
                   </div>
                 </div>
 
-                <!-- Created At (optional manual date) -->
+                <!-- Created At (mandatory date) -->
                 <div class="row g-3 mt-2">
                   <div class="col-md-4">
-                    <label for="modal-created_at" class="form-label">Added On (optional)</label>
-                    <input type="date" class="form-control" id="modal-created_at" name="created_at">
-                    <small class="text-muted">Leave blank for current date/time</small>
+                    <label for="modal-created_at" class="form-label">Added On <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="modal-created_at" name="created_at" required>
+                    <small class="text-muted">Required – date product was added</small>
                   </div>
                 </div>
 
@@ -383,6 +383,12 @@
         }
       }
 
+      // Check created_at is provided (HTML5 required handles UI, but double-check)
+      if (!data.created_at) {
+        showToast('Added date is required.', 'warning');
+        return;
+      }
+
       formData.forEach((value, key) => {
         if (key.startsWith('sizes[')) {
           const match = key.match(/sizes\[(\d+)\]\[(\w+)\]/);
@@ -439,6 +445,8 @@
             </div>`;
             modalSizeIndex = 1;
             updateModalRemoveButtons();
+            // Reset created_at field (clear value)
+            document.getElementById('modal-created_at').value = '';
             showToast('Product added successfully!', 'success');
           } else {
             showToast('Error saving product', 'danger');
@@ -520,7 +528,6 @@
         return;
       }
 
-      // Group products by date (YYYY-MM-DD)
       const groups = {};
       products.forEach(product => {
         const date = new Date(product.created_at);
@@ -529,7 +536,6 @@
         groups[dateKey].push(product);
       });
 
-      // Sort date keys descending (newest first)
       const sortedDates = Object.keys(groups).sort().reverse();
 
       let html = '';
@@ -539,7 +545,6 @@
         const label = getDateLabel(sampleDate);
         const formattedDate = sampleDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
-        // Section header row
         html += `<tr class="table-secondary"><td colspan="13" style="font-weight: bold; background-color: #e9ecef;">${label} — ${formattedDate}</td></tr>`;
 
         dateProducts.forEach(product => {
@@ -585,10 +590,8 @@
       tbody.innerHTML = html;
       document.getElementById('update-status').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
 
-      // Make all clickable rows navigate to product detail
       document.querySelectorAll('.clickable-row').forEach(row => {
         row.addEventListener('click', function(e) {
-          // Prevent navigation if clicking on an interactive element inside the row
           if (e.target.tagName === 'A' || e.target.tagName === 'IMG' || e.target.closest('a')) {
             return;
           }
@@ -622,7 +625,6 @@
         categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
     }
 
-    // Event listeners for filters
     document.getElementById('search-input').addEventListener('input', applyFilters);
     document.getElementById('category-filter').addEventListener('change', applyFilters);
     document.getElementById('size-filter').addEventListener('change', applyFilters);
@@ -633,7 +635,6 @@
       applyFilters();
     });
 
-    // Initialisation
     document.addEventListener('DOMContentLoaded', function() {
       fetchProducts();
       const socket = io();

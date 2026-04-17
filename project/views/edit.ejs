@@ -71,11 +71,11 @@
         <datalist id="supplier-list"></datalist>
       </div>
 
-      <!-- Created At (manual date) -->
+      <!-- Created At (mandatory) -->
       <div class="mb-3">
-        <label for="created_at" class="form-label">Added On (optional)</label>
-        <input type="date" class="form-control" id="created_at" name="created_at" value="<%= product.created_at ? new Date(product.created_at).toISOString().split('T')[0] : '' %>" autocomplete="off">
-        <small class="text-muted">Leave blank to keep existing date</small>
+        <label for="created_at" class="form-label">Added On <span class="text-danger">*</span></label>
+        <input type="date" class="form-control" id="created_at" name="created_at" value="<%= product.created_at ? new Date(product.created_at).toISOString().split('T')[0] : '' %>" required>
+        <small class="text-muted">Required – date product was added</small>
       </div>
 
       <div class="mb-3 form-check">

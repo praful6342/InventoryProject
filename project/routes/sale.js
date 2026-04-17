@@ -91,6 +91,15 @@ router.post('/checkout', (req, res) => {
   const cart = req.session.cart;
   if (!cart || cart.length === 0) return res.redirect('/sale/cart');
 
+  // Validate sale_date is provided and valid
+  if (!sale_date) {
+    return res.status(400).send('Sale date is required');
+  }
+  const saleDateObj = new Date(sale_date);
+  if (isNaN(saleDateObj.getTime())) {
+    return res.status(400).send('Invalid sale date');
+  }
+
   const preDiscountTotal = cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
 
   db.serialize(() => {
@@ -136,7 +145,7 @@ router.post('/checkout', (req, res) => {
             db.run(
               `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date, payment_method)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date || null, payment_method || 'Cash'],
+                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date, payment_method || 'Cash'],
                    function(err) {
                      if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating sale'); }
                      const saleId = this.lastID;
@@ -437,6 +446,15 @@ router.post('/update/:id', isAdmin, (req, res) => {
     return res.status(400).send('At least one item is required');
   }
 
+  // Validate sale_date
+  if (!sale_date) {
+    return res.status(400).send('Sale date is required');
+  }
+  const saleDateObj = new Date(sale_date);
+  if (isNaN(saleDateObj.getTime())) {
+    return res.status(400).send('Invalid sale date');
+  }
+
   // Parse items
   const newItems = items.map(item => ({
     product_id: parseInt(item.product_id),
@@ -531,7 +549,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
               db.run(
                 `UPDATE sales SET customer_id = ?, total_amount = ?, profit = ?, discount_type = ?, discount_value = ?, discount_amount = ?, sale_date = ?, payment_method = ?
                 WHERE id = ?`,
-                [custId, finalTotal, profitTotal, discount_type || null, discount_value || null, discountAmount, sale_date || null, payment_method || 'Cash', saleId],
+                [custId, finalTotal, profitTotal, discount_type || null, discount_value || null, discountAmount, sale_date, payment_method || 'Cash', saleId],
                 err => {
                   if (err) { db.run('ROLLBACK'); return res.status(500).send('Error updating sale'); }
 
