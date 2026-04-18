@@ -40,7 +40,6 @@
                 <strong>Bill #<%= sale.bill_number %></strong> –
                 <%= sale.sale_date ? new Date(sale.sale_date).toLocaleDateString() : new Date(sale.created_at).toLocaleDateString() %>
                 | Total: ₹<%= sale.total_amount.toFixed(2) %>
-                | Profit: ₹<%= sale.profit.toFixed(2) %>
                 | Payment: <%= sale.payment_method || 'Cash' %>
                 <% if (sale.customer_name) { %> | Customer: <%= sale.customer_name %><% } %>
                 <% if (sale.total_amount < 0) { %> | <span class="text-warning fw-bold">Return Bill</span><% } %>
@@ -51,7 +50,13 @@
               <div class="accordion-body">
                 <table class="table table-sm">
                   <thead>
-                    <tr><th>Product</th><th>Size</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Profit</th></tr>
+                    <tr>
+                      <th>Product</th>
+                      <th>Size</th>
+                      <th>Qty</th>
+                      <th>Unit Price</th>
+                      <th>Total</th>
+                    </tr>
                   </thead>
                   <tbody>
                     <% sale.items.forEach(item => { %>
@@ -61,18 +66,17 @@
                         <td><%= item.quantity %></td>
                         <td>₹<%= item.price_at_sale.toFixed(2) %></td>
                         <td>₹<%= (item.price_at_sale * item.quantity).toFixed(2) %></td>
-                        <td>₹<%= item.profit_on_item.toFixed(2) %></td>
                       </tr>
                     <% }); %>
                     <% if (sale.discount_amount > 0) { %>
                       <tr class="text-danger">
-                        <td colspan="5" class="text-end"><strong>Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</strong></td>
+                        <td colspan="4" class="text-end"><strong>Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</strong></td>
                         <td>-₹<%= sale.discount_amount.toFixed(2) %></td>
                       </tr>
                     <% } %>
                     <tr class="fw-bold">
-                      <td colspan="5" class="text-end">Total Profit after Discount:</td>
-                      <td>₹<%= sale.profit.toFixed(2) %></td>
+                      <td colspan="4" class="text-end">Total Amount:</td>
+                      <td>₹<%= sale.total_amount.toFixed(2) %></td>
                     </tr>
                   </tbody>
                 </table>
