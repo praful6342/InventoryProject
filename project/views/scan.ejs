@@ -128,7 +128,7 @@
           </div>
         </div>
 
-        <!-- Scanned product details (optional) -->
+        <!-- Scanned product details -->
         <div class="card mt-4">
           <div class="card-body">
             <h5 class="card-title">Scanned Product</h5>
@@ -156,14 +156,14 @@
               <div class="table-responsive">
                 <table class="table cart-table table-sm align-middle">
                   <thead>
-                     —
+                    <tr>
                       <th>Item</th>
                       <th>Size</th>
                       <th>Qty</th>
                       <th>Price</th>
                       <th>Total</th>
                       <th></th>
-                     —
+                    </tr>
                   </thead>
                   <tbody id="cart-items">
                     <% let grandTotal = 0; %>
@@ -397,7 +397,7 @@
               showToast(data.error, 'danger');
             } else {
               showToast('Added to cart!', 'success');
-              // Reload page to refresh cart panel (simpler than building dynamic cart)
+              // Reload page to refresh cart panel
               location.reload();
             }
           })
@@ -534,7 +534,7 @@
         document.getElementById('scanBtn').click();
       }, 500);
 
-      // ========== CART QUANTITY CONTROLS & REMOVE (with dynamic UI update) ==========
+      // ========== CART QUANTITY CONTROLS & REMOVE ==========
       function updateQuantity(productId, size, quantity) {
         fetch('/sale/update', {
           method: 'POST',
@@ -558,18 +558,14 @@
       function updateCartUI(productId, size, newQuantity) {
         const row = document.querySelector(`tr[data-product-id="${productId}"][data-size="${size}"]`);
         if (!row) {
-          // If row not found, maybe the cart is empty, reload page to rebuild
           location.reload();
           return;
         }
 
         if (newQuantity === 0) {
-          // Remove the row
           row.remove();
-          // Check if cart is now empty
           const tbody = document.getElementById('cart-items');
           if (tbody.children.length === 0) {
-            // Show empty cart message
             const cartCard = document.querySelector('.card-body');
             cartCard.innerHTML = `
               <div class="empty-cart-message">
@@ -577,12 +573,10 @@
                 <p>Your cart is empty. Scan or enter a product to add items.</p>
               </div>
             `;
-            // Remove the checkout button (it will be re-added by the new DOM)
             const checkoutBtn = document.querySelector('.btn-checkout');
             if (checkoutBtn) checkoutBtn.remove();
           }
         } else {
-          // Update quantity input and item total
           const qtyInput = row.querySelector('.qty-input');
           qtyInput.value = newQuantity;
           const sellingPrice = parseFloat(row.cells[3].innerText.replace('₹', ''));
@@ -591,7 +585,6 @@
           itemTotalCell.innerText = '₹' + newItemTotal.toFixed(2);
         }
 
-        // Recalculate grand total
         let grandTotal = 0;
         document.querySelectorAll('#cart-items tr').forEach(row => {
           const totalText = row.querySelector('.item-total').innerText;
@@ -602,7 +595,6 @@
         if (grandTotalSpan) grandTotalSpan.innerText = '₹' + grandTotal.toFixed(2);
       }
 
-      // Event delegation for all cart buttons (works even after row removal)
       const cartItems = document.getElementById('cart-items');
       if (cartItems) {
         cartItems.addEventListener('click', (e) => {
@@ -610,7 +602,7 @@
           if (!btn) return;
 
           const row = btn.closest('tr');
-          const productId = parseInt(row.dataset.productId, 10);   // convert to integer
+          const productId = parseInt(row.dataset.productId, 10);
           const size = row.dataset.size;
 
           if (btn.classList.contains('qty-incr')) {
@@ -629,12 +621,11 @@
           }
         });
 
-        // Handle direct changes to the quantity input
         cartItems.addEventListener('change', (e) => {
           const input = e.target.closest('.qty-input');
           if (!input) return;
           const row = input.closest('tr');
-          const productId = parseInt(row.dataset.productId, 10);   // convert to integer
+          const productId = parseInt(row.dataset.productId, 10);
           const size = row.dataset.size;
           let newVal = parseInt(input.value);
           if (isNaN(newVal) || newVal < 1) newVal = 1;

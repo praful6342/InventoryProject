@@ -12,6 +12,7 @@ const billRoutes = require('./routes/bill');
 const dashboardRoutes = require('./routes/dashboard');
 const saleRoutes = require('./routes/sale');
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');   // <-- NEW: user management
 const { isAuthenticated, isAdmin } = require('./middleware/auth');
 
 const app = express();
@@ -50,6 +51,7 @@ app.use('/dashboard', isAuthenticated);
 app.use('/sale', isAuthenticated);
 app.use('/bill', isAuthenticated);
 app.use('/api', isAuthenticated);
+app.use('/users', isAuthenticated);   // <-- NEW: protect /users
 
 // Route registrations (after middleware, so they are protected)
 app.use('/products', productRoutes);
@@ -58,6 +60,7 @@ app.use('/api', apiRoutes);
 app.use('/bill', billRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/sale', saleRoutes);
+app.use('/users', userRoutes);        // <-- NEW: register users route
 
 // Home route – redirect to dashboard (protected)
 app.get('/', isAuthenticated, (req, res) => {

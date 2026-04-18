@@ -17,6 +17,11 @@
       <li class="nav-item">
         <a class="nav-link <%= currentPage === 'soldProducts' ? 'active' : '' %>" href="/sale/sold-products">Sold Items</a>
       </li>
+      <% if (user && user.role === 'admin') { %>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPage === 'users' ? 'active' : '' %>" href="/users">Users</a>
+        </li>
+      <% } %>
       <% if (user) { %>
         <li class="nav-item">
           <span class="nav-link text-muted">Welcome, <%= user.username %> (<%= user.role %>)</span>

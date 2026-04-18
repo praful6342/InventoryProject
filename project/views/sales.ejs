@@ -128,7 +128,8 @@
     </div>
   </div>
 
-  <!-- Delete Confirmation Modal -->
+  <!-- Delete Confirmation Modal (Admin only) -->
+  <% if (user && user.role === 'admin') { %>
   <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -149,6 +150,7 @@
       </div>
     </div>
   </div>
+  <% } %>
 
   <%- include('partials/footer') %>
 
@@ -185,7 +187,8 @@
       });
     });
 
-    // Delete modal
+    // Delete modal (only if admin)
+    <% if (user && user.role === 'admin') { %>
     const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
     const deleteForm = document.getElementById('deleteForm');
     const deleteBillNumberSpan = document.getElementById('deleteBillNumber');
@@ -198,6 +201,7 @@
         deleteModal.show();
       });
     });
+    <% } %>
   </script>
 </body>
 </html>

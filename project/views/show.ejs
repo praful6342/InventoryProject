@@ -55,7 +55,7 @@
   <%- include('partials/navbar', { currentPage: 'show' }) %>
 
   <div class="container mt-4">
-    <!-- Hidden element to store product ID -->
+    <!-- Hidden element to store product ID for real-time updates -->
     <span id="product-data" data-id="<%= product.id %>" style="display:none;"></span>
 
     <div class="d-flex justify-content-between align-items-center">
@@ -68,42 +68,45 @@
     <div class="row">
       <div class="col-md-6">
         <table class="table">
-          <tr><th>Product Code</th>.<td><%= product.product_code %></td> </tr>
-          <tr><th>Category</th>.<td><%= product.category %></td> </tr>
-          <tr><th>Name</th>.<td><%= product.name %></td> </tr>
-          <tr><th>Supplier</th>.<td><%= product.supplier %></td> </tr>
-          <tr><th>Sizes & Stock</th>
-              <td id="product-stock">
-                <% if (product.has_sizes) { %>
-                  <% if (product.variants && product.variants.length > 0) { %>
-                    <% product.variants.forEach(function(v) { %>
-                      <span><%= v.size %>: <%= v.stock %></span><br>
-                    <% }); %>
-                  <% } else { %>
-                    <span class="text-muted">—</span>
-                  <% } %>
+          <tr><th>Product Code</th><td><%= product.product_code %></td></tr>
+          <tr><th>Category</th><td><%= product.category %></td></tr>
+          <tr><th>Name</th><td><%= product.name %></td></tr>
+          <tr><th>Supplier</th><td><%= product.supplier %></td></tr>
+          <tr>
+            <th>Sizes & Stock</th>
+            <td id="product-stock">
+              <% if (product.has_sizes) { %>
+                <% if (product.variants && product.variants.length > 0) { %>
+                  <% product.variants.forEach(function(v) { %>
+                    <span><%= v.size %>: <%= v.stock %></span><br>
+                  <% }); %>
                 <% } else { %>
-                  <% if (product.variants && product.variants[0]) { %>
-                    <span>Stock: <%= product.variants[0].stock %></span>
-                  <% } else { %>
-                    <span class="text-muted">—</span>
-                  <% } %>
+                  <span class="text-muted">—</span>
                 <% } %>
-               </td>
-           </tr>
-           <tr><th>Cost Price</th><td id="product-cost">₹<%= product.cost_price %></td></tr>
-           <tr><th>Margin (%)</th><td><%= product.margin_percent %></td></tr>
-           <tr><th>Margin (₹)</th><td><%= product.margin_rs %></td></tr>
-           <tr><th>Selling Price</th><td id="product-selling">₹<%= product.selling_price %></td></tr>
-         </table>
-        <a href="/products" class="btn btn-secondary">Back to list</a>
-        <% if (user && user.role === 'admin') { %>
-          <a href="/products/edit/<%= product.id %>" class="btn btn-warning">Edit Product</a>
-          <form method="POST" action="/products/delete/<%= product.id %>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this product? This action cannot be undone.');">
-            <button type="submit" class="btn btn-danger">Delete Product</button>
-          </form>
-        <% } %>
-        <a href="/products/label/<%= product.id %>" class="btn btn-print" target="_blank">Print Label</a>
+              <% } else { %>
+                <% if (product.variants && product.variants[0]) { %>
+                  <span>Stock: <%= product.variants[0].stock %></span>
+                <% } else { %>
+                  <span class="text-muted">—</span>
+                <% } %>
+              <% } %>
+            </td>
+          </tr>
+          <tr><th>Cost Price</th><td id="product-cost">₹<%= product.cost_price %></td></tr>
+          <tr><th>Margin (%)</th><td><%= product.margin_percent %></td></tr>
+          <tr><th>Margin (₹)</th><td><%= product.margin_rs %></td></tr>
+          <tr><th>Selling Price</th><td id="product-selling">₹<%= product.selling_price %></td></tr>
+        </table>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="/products" class="btn btn-secondary">Back to list</a>
+          <a href="/products/label/<%= product.id %>" class="btn btn-print" target="_blank">Print Label</a>
+          <% if (user && user.role === 'admin') { %>
+            <a href="/products/edit/<%= product.id %>" class="btn btn-warning">Edit Product</a>
+            <form method="POST" action="/products/delete/<%= product.id %>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this product? This action cannot be undone.');">
+              <button type="submit" class="btn btn-danger">Delete Product</button>
+            </form>
+          <% } %>
+        </div>
       </div>
       <div class="col-md-6 text-center">
         <h5>QR Code (scannable)</h5>
@@ -127,7 +130,7 @@
         const response = await fetch(`/api/products/${productId}?_=${Date.now()}`);
         if (!response.ok) throw new Error('Failed to fetch');
         const product = await response.json();
-        document.getElementById('product-name').innerText = product.name;
+        document.getElementById('product-name').innerHTML = `<i class="fa-solid fa-box"></i> ${product.name}`;
         document.getElementById('product-cost').innerHTML = `₹${product.cost_price}`;
         document.getElementById('product-selling').innerHTML = `₹${product.selling_price}`;
         const stockTd = document.getElementById('product-stock');

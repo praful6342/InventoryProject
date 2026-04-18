@@ -122,7 +122,8 @@
         </div>
       </div>
 
-      <!-- Add Product Modal -->
+      <!-- Add Product Modal (Admin only) -->
+      <% if (user && user.role === 'admin') { %>
       <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
           <div class="modal-content">
@@ -232,6 +233,7 @@
           </div>
         </div>
       </div>
+      <% } %>
 
       <div class="table-responsive">
         <table class="table table-striped table-sm align-middle mb-0 products-table">
@@ -282,7 +284,8 @@
         document.getElementById('supplier-list').innerHTML = sups.map(s => `<option value="${s}">`).join('');
       });
 
-    // ========== MODAL SIZE ROW LOGIC ==========
+    // ========== MODAL SIZE ROW LOGIC (only relevant if admin) ==========
+    <% if (user && user.role === 'admin') { %>
     let modalSizeIndex = 1;
     document.getElementById('add-modal-size-row').addEventListener('click', function() {
       const container = document.getElementById('modal-sizes-container');
@@ -460,6 +463,7 @@
         showToast('Network error', 'danger');
       }
     });
+    <% } %>
 
     // ========== FILTERING ==========
     let allProducts = [];
