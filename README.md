@@ -1,167 +1,188 @@
-# InventoryProject - Clothing Store Management System
+# Clothing Store Inventory & Sales Management System
 
-A full-featured inventory and sales management system for clothing stores, with QR code product tracking, real‑time updates, and a responsive web interface.
+A complete web‑based solution for small clothing stores to manage products, track stock, process sales via QR scanning, handle returns, and view real‑time analytics.
 
-## Features
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)
+![Express](https://img.shields.io/badge/Express-5.x-blue)
+![SQLite](https://img.shields.io/badge/SQLite-3-blue)
+![License](https://img.shields.io/badge/License-ISC-lightgrey)
 
-- **Product Management**  
-  - Add, edit, delete, and view products with variant support (sizes: S, M, L, XL, XXL) and stock per size.  
-  - Automatic product code generation based on category and name.  
-  - Permanent QR codes generated per product (using product ID) for easy scanning.  
-  - Label printing with product code, selling price, and QR code.
+## ✨ Features
 
-- **QR Code Scanning**  
-  - Scan product QR codes using the device camera (via `html5-qrcode` library).  
-  - Instant lookup of product details and stock availability.  
-  - Add scanned items directly to cart with size and quantity selection.
+- **Role‑based authentication** – Admin and seller roles with different permissions.
+- **Product management** – Add/edit/delete products; support for sizes (XS–5XL) and single‑size items.
+- **QR code generation** – Each product gets a permanent QR code (`pid:ID`) and a printable label.
+- **QR scanning** – Scan product QR codes using device camera (HTML5 QR scanner) or enter product code manually.
+- **Shopping cart** – Session‑based cart, update quantities, remove items.
+- **Checkout** – Customer info (optional), discount (percentage or fixed), sale date selection, payment method (Cash/UPI/Card).
+- **Sales history** – View all sales with accordion details, search by bill number, product code, customer name/phone.
+- **Return sales** – Process returns, restock items, create negative bill, capture return reason.
+- **Edit & delete sales** – Admin only: edit sale items, prices, discount, or delete a sale (restores stock).
+- **Sold products report** – Detailed per‑item view with allocated discount and net total; filter by date range, seller, and search.
+- **Dashboard** – Sales metrics (quantity sold, profit, total sales), daily sales chart, payment method breakdown, inventory valuation (cost & selling).
+- **User management** – Admin can add/delete sellers or other admins.
+- **Real‑time updates** – Socket.IO notifies clients when product stock changes.
 
-- **Sales & Cart**  
-  - Session‑based shopping cart (persists across requests).  
-  - Add/update/remove items before checkout.  
-  - Real‑time stock validation during cart operations.  
-  - **Discounts:** Apply optional discounts during checkout – choose between **percentage (%)** or **fixed amount (₹)**. The total updates live as you type.  
-  - Checkout with optional customer information (name, phone, email).  
-  - Generates unique bill numbers and records sales with profit calculation (discounts are subtracted from both total and profit).
+## 🛠️ Technologies
 
-- **Billing**  
-  - Printable bill page with customer details, itemised list, and total amount.  
-  - If a discount was applied, the bill displays the discount type, value, and deducted amount before the final total.  
-  - Stores sale transactions in database with profit tracking.
+- **Backend**: Node.js, Express 5, SQLite3, bcrypt, express‑session, Socket.IO
+- **Frontend**: EJS templates, Bootstrap 5, Chart.js, HTML5 QR scanner, Font Awesome
+- **Development**: Self‑signed HTTPS (for local network testing)
 
-- **Dashboard**  
-  - Daily summary: quantity sold, profit, current stock.  
-  - Inventory valuation at cost and selling price.  
-  - Sales trend chart (placeholder – can be connected to real data).
+## 📦 Installation
 
-- **Real‑time Updates**  
-  - Socket.IO integration broadcasts product changes (add/update/delete) to all connected clients.  
-  - Product lists and detail pages update automatically.
+### Prerequisites
+- Node.js (v18 or later)
+- npm
 
-- **Data Import / Export**  
-  - `import-from-csv.js` script to bulk import products from a CSV file.  
-  - `cleanup.js` removes orphaned variant records.
+### Steps
 
-- **HTTPS Support**  
-  - Runs with a self‑signed certificate for secure local network access (ideal for mobile scanning).
-
-## Prerequisites
-
-- [Node.js](https://nodejs.org/) (v14 or newer)
-- [npm](https://www.npmjs.com/)
-- SQLite3 (usually included with the `sqlite3` npm package)
-
-## Installation
-
-1. **Clone the repository**  
+1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/InventoryProject.git
-   cd InventoryProject
+   git clone https://github.com/yourusername/inventoryproject.git
+   cd inventoryproject
    ```
 
-2. **Install dependencies**  
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-3. **Generate SSL certificate for HTTPS (self‑signed)**  
-   The app requires `server.key` and `server.crt` files in the `project/` folder.  
-   Run the following command (openssl must be installed) and place the generated files in `project/`:
+3. **Generate self‑signed SSL certificates** (required for HTTPS camera access)
    ```bash
-   openssl req -x509 -newkey rsa:2048 -keyout project/server.key -out project/server.crt -days 365 -nodes
+   cd project
+   openssl req -nodes -new -x509 -keyout server.key -out server.crt -days 365
    ```
-   When prompted for information, you can leave fields blank or fill as needed.
+   Follow the prompts (you can leave most fields blank).
 
 4. **Database setup**  
-   The SQLite database will be created automatically in the `data/` folder when the server first runs.  
-   No additional setup is required. If you need to initialise with sample data, you can use the CSV import script (see below).
+   The database (`data/database.db`) is created automatically on first run.  
+   A default admin user is created with:
+   - Username: `admin`
+   - Password: `admin123`  
+   **⚠️ Change this password immediately after first login!**
 
-5. **Environment configuration (optional)**  
-   You can change the session secret in `project/server.js` (line with `secret: 'inventory-secret-key'`).  
-   For production, consider using environment variables.
-
-## Usage
-
-1. **Start the server**  
+5. **Start the server**
    ```bash
    npm start
    ```
-   The server will start on `https://localhost:3000` (or your machine's IP).
+   The server runs at `https://localhost:3000` (or `https://<your-laptop-ip>:3000`).
 
-2. **Access the application**  
-   Open your browser and go to `https://localhost:3000`.  
-   If you are on another device on the same network, use `https://<your-laptop-ip>:3000`.  
-   You may see a security warning because of the self‑signed certificate – proceed anyway.
+6. **Access the application**  
+   Open your browser and accept the self‑signed certificate warning.  
+   Log in with the default admin credentials.
 
-3. **Using the app**  
-   - **Products**: View all products, add new ones, edit or delete existing ones.  
-   - **Scan**: Use your camera to scan product QR codes and add items to cart.  
-   - **Cart**: Review selected items, adjust quantities, proceed to checkout.  
-   - **Dashboard**: See daily sales metrics and inventory value.  
-   - **Bill**: After checkout, a printable bill is displayed.
+## 🔧 Configuration
 
-4. **Import products from CSV**  
-   Place your CSV file (e.g., `products.csv`) in the project root.  
-   Run the import script:
-   ```bash
-   node import-from-csv.js
-   ```
-   The script expects columns: `category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, size, stock`.  
-   See `products.csv` for an example format.
+All configuration is currently hardcoded. For production, consider using environment variables:
 
-5. **Clean up orphaned variants**  
-   If you delete products directly from the database, you can run:
-   ```bash
-   node cleanup.js
-   ```
-   This removes variant records that no longer have a corresponding product.
+| Variable        | Location                  | Purpose                               |
+|----------------|---------------------------|---------------------------------------|
+| Session secret | `server.js`               | Change `'inventory-secret-key'`       |
+| Default admin  | `database.js`             | Password `admin123` – update after setup |
+| Port            | `server.js` (PORT=3000)   | Change as needed                      |
+| HTTPS options   | `server.js`               | Paths to `server.key` and `server.crt`|
 
-## Project Structure
+## 🚀 Usage Guide
 
-```
-InventoryProject/
-├── data/                       # SQLite database and generated label images
-├── project/                    # Main application folder
-│   ├── public/                 # Static assets (CSS, JS)
-│   ├── routes/                 # Express route handlers
-│   ├── views/                  # EJS templates
-│   ├── server.js               # Entry point
-│   ├── database.js             # Database connection and schema
-│   └── socket.js               # Socket.IO setup
-├── cleanup.js                  # Orphaned variant removal
-├── import-from-csv.js          # Bulk product import
-├── products.csv                # Example CSV for import
-├── HowToEditDatabase.md        # Database editing guide
-├── HowToUpdateWithoutLosingData.md  # Update guide
-└── Wisdom/                     # Development roadmap
-```
+### Roles
+- **Admin** – Full access: add/edit/delete products, manage users, edit/delete any sale.
+- **Seller** – Can scan, add to cart, checkout, view sales history, print bills, process returns.
 
-## API Endpoints
+### Workflow
 
-The following JSON API endpoints are available (useful for integrations):
+1. **Add products** (Admin only)  
+   - Go to `Products` → `Add Product`.  
+   - Enter category, name, supplier, cost price, margin %, optional sizes with stock.  
+   - The selling price is automatically calculated (rounded up).
 
-| Method | Endpoint                 | Description                                    |
-|--------|--------------------------|------------------------------------------------|
-| GET    | `/api/products`          | List all products (with variants)              |
-| GET    | `/api/products/:id`      | Get a single product by ID or product code     |
-| GET    | `/api/qr/:code`          | Serve QR code image for the given code         |
-| POST   | `/scan/scan-product`     | Lookup product by scanned QR code              |
-| POST   | `/sale/add`              | Add item to cart (AJAX)                        |
-| POST   | `/sale/update`           | Update cart item quantity (AJAX)               |
-| POST   | `/products/delete/:id`   | Delete a product (supports JSON response)      |
+2. **Scan products**  
+   - Navigate to `Scan`.  
+   - Allow camera access and scan a product QR code (or enter product code manually).  
+   - Select size (if applicable) and quantity, then click `Add to Cart`.
 
-## Technologies Used
+3. **Manage cart**  
+   - View cart from the scanner page (right column) or go to `Cart`.  
+   - Update quantities or remove items.
 
-- **Backend**: Node.js, Express.js, SQLite3, Socket.IO
-- **Frontend**: Bootstrap 5, EJS, custom CSS, JavaScript
-- **QR**: `qrcode` (generation), `html5-qrcode` (scanning)
-- **Session**: `express-session`
-- **CSV parsing**: `csv-parser`
-- **HTTPS**: Built‑in `https` module with self‑signed certificates
+4. **Checkout**  
+   - Click `Proceed to Checkout`.  
+   - Fill optional customer details, select sale date (required), apply discount if needed, choose payment method.  
+   - Complete sale – you will be redirected to the bill page.
 
-## Contributing
+5. **Print bill**  
+   - From the bill page, click `Print Bill`.  
+   - Admins can also edit or delete the sale from the bill page.
 
-Contributions are welcome! If you'd like to improve the project, please fork the repository and submit a pull request. For major changes, open an issue first to discuss what you'd like to change.
+6. **Process return**  
+   - Go to `Sales` → find the sale → click `Return Sale`.  
+   - Enter return reason and optional return date.  
+   - A negative bill is created, stock is restored, and the original sale is marked as returned.
 
-## License
+7. **View reports**  
+   - `Dashboard` – filter by date ranges, view metrics and chart.  
+   - `Sold Items` – detailed per‑item report with discount allocation.
 
-This project is open source and available under the [MIT License](LICENSE).
+## 📁 Database Schema
+
+Main tables:
+
+- `users` – id, username, password (bcrypt), role (admin/seller)
+- `products` – id, product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, has_sizes, qr_code, created_at
+- `product_variants` – id, product_id, size, stock
+- `customers` – id, name, phone, email
+- `sales` – id, customer_id, total_amount, profit, bill_number, created_at, discount_type, discount_value, discount_amount, sale_date, payment_method, returned, return_reason, seller_id
+- `sale_items` – id, sale_id, product_id, quantity, price_at_sale, profit_on_item, size
+
+## 📡 API Endpoints (used by frontend)
+
+| Endpoint                   | Method | Description                         |
+|----------------------------|--------|-------------------------------------|
+| `/api/products`            | GET    | Get all products with variants      |
+| `/api/products/:id`        | GET    | Get a single product (by ID or code)|
+| `/api/product-names`       | GET    | List of product names (autocomplete)|
+| `/api/product-codes`       | GET    | List of product codes (autocomplete)|
+| `/api/categories`          | GET    | List of categories                  |
+| `/api/suppliers`           | GET    | List of suppliers                   |
+| `/api/sellers`             | GET    | List of users with role seller/admin|
+| `/scan/scan-product`       | POST   | Lookup product by code/pid          |
+| `/sale/add`                | POST   | Add item to cart                    |
+| `/sale/update`             | POST   | Update cart quantity                |
+| `/sale/return/:saleId`     | POST   | Process a return                    |
+| `/sale/delete/:id`         | POST   | Delete a sale (admin)               |
+
+## 🔒 Security Notes
+
+- **Default admin password** – Change immediately after first login.
+- **Session secret** – Replace hardcoded value with a strong secret (e.g., `crypto.randomBytes(64).toString('hex')`).
+- **HTTPS** – Required for camera access on modern browsers; self‑signed is fine for local networks.
+- **SQL injection** – All queries use parameterised statements (`db.get`, `db.run` with `?` placeholders).
+- **Password hashing** – bcrypt with strength 10.
+
+## 🐛 Troubleshooting
+
+| Issue                                      | Solution                                                                 |
+|--------------------------------------------|--------------------------------------------------------------------------|
+| Camera not working on mobile               | Ensure you are using **HTTPS** (self‑signed is accepted).                |
+| QR scanner doesn't start                   | Check browser console; grant camera permissions; restart the scanner by clicking `Scan`. |
+| Product not found when scanning `pid:123`  | Make sure the product exists and the QR code was generated correctly.    |
+| Can’t edit a returned sale                 | Returned sales cannot be edited (design).                                |
+| Database locked error                      | Stop the server, delete `data/database.db-journal` (if exists), restart. |
+| Self‑signed certificate warning            | Proceed anyway; for production, use a real certificate.                  |
+
+## 🧪 Testing
+
+No automated tests are currently included. Manual testing is recommended.
+
+## 📄 License
+
+This project is licensed under the ISC License.
+
+## 👥 Authors
+
+Developed as a complete inventory & POS system for clothing stores.
+
+---
+
+**Enjoy managing your store with QR scanning!**  
+For questions or improvements, please open an issue or contact the maintainer.
