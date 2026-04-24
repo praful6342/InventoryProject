@@ -82,6 +82,7 @@
           <% } %>
         </p>
         <p><strong>Payment Method:</strong> <%= sale.payment_method || 'Cash' %></p>
+        <p><strong>Sold By:</strong> <%= sale.seller_name || 'Unknown' %></p>
         <% if (sale.customer_name) { %>
           <p><strong>Customer:</strong> <%= sale.customer_name %></p>
           <% if (sale.customer_phone) { %><p><strong>Phone:</strong> <%= sale.customer_phone %></p><% } %>

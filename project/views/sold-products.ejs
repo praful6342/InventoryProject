@@ -26,7 +26,7 @@
 
       <div class="filter-section">
         <div class="row g-3 align-items-end">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label">Date Range</label>
             <div class="d-flex gap-2">
               <input type="date" id="startDate" class="form-control" value="<%= start_date %>">
@@ -34,11 +34,20 @@
               <input type="date" id="endDate" class="form-control" value="<%= end_date %>">
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label">Search</label>
-            <input type="text" id="searchInput" class="form-control" placeholder="Product name, code or bill number" value="<%= search %>" autocomplete="off">
+            <input type="text" id="searchInput" class="form-control" placeholder="Product name, code or bill" value="<%= search %>" autocomplete="off">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
+            <label class="form-label">Filter by Seller</label>
+            <select id="sellerFilter" class="form-select">
+              <option value="">All Sellers</option>
+              <% sellers.forEach(seller => { %>
+                <option value="<%= seller.id %>" <%= seller_id == seller.id ? 'selected' : '' %>><%= seller.username %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-md-3">
             <button id="applyFilters" class="btn btn-primary w-100">Apply Filters</button>
           </div>
         </div>
@@ -58,11 +67,12 @@
               <th>Original Total</th>
               <th>Discount Allocated</th>
               <th>Net Total</th>
+              <th>Sold By</th>
             </tr>
           </thead>
           <tbody id="itemsTableBody">
             <% if (items.length === 0) { %>
-              <tr><td colspan="10" class="text-center">No items found.</td></tr>
+              <tr><td colspan="11" class="text-center">No items found.</td></tr>
             <% } else { %>
               <% items.forEach(item => { %>
                 <tr>
@@ -78,6 +88,7 @@
                     <%= item.discount_allocated > 0 ? '-₹' + item.discount_allocated.toFixed(2) : '—' %>
                   </td>
                   <td class="fw-bold">₹<%= item.net_total.toFixed(2) %></td>
+                  <td><%= item.seller_name || 'Unknown' %></td>
                 </tr>
               <% }); %>
             <% } %>
@@ -112,6 +123,7 @@
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
     const searchInput = document.getElementById('searchInput');
+    const sellerFilter = document.getElementById('sellerFilter');
     const applyBtn = document.getElementById('applyFilters');
     const tbody = document.getElementById('itemsTableBody');
 
@@ -120,6 +132,7 @@
       if (startDateInput.value) params.append('start_date', startDateInput.value);
       if (endDateInput.value) params.append('end_date', endDateInput.value);
       if (searchInput.value) params.append('search', searchInput.value);
+      if (sellerFilter.value) params.append('seller_id', sellerFilter.value);
       params.append('page', page);
       params.append('_t', Date.now());
 
@@ -131,7 +144,7 @@
         .then(data => {
           tbody.innerHTML = '';
           if (data.items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" class="text-center">No items found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" class="text-center">No items found.</td></tr>';
           } else {
             data.items.forEach(item => {
               const row = document.createElement('tr');
@@ -146,11 +159,13 @@
                 <td>₹${item.original_total.toFixed(2)}</td>
                 <td class="${item.discount_allocated > 0 ? 'discount-text' : ''}">${item.discount_allocated > 0 ? '-₹' + item.discount_allocated.toFixed(2) : '—'}</td>
                 <td class="fw-bold">₹${item.net_total.toFixed(2)}</td>
+                <td>${item.seller_name || 'Unknown'}</td>
               `;
               tbody.appendChild(row);
             });
           }
 
+          // Update pagination
           const paginationContainer = document.querySelector('.pagination');
           if (data.totalPages > 1) {
             let paginationHtml = `
@@ -183,6 +198,15 @@
           } else if (paginationContainer) {
             paginationContainer.innerHTML = '';
           }
+
+          // Update seller dropdown options if they've changed (optional)
+          if (data.sellers) {
+            const currentSeller = sellerFilter.value;
+            sellerFilter.innerHTML = '<option value="">All Sellers</option>';
+            data.sellers.forEach(seller => {
+              sellerFilter.innerHTML += `<option value="${seller.id}" ${currentSeller == seller.id ? 'selected' : ''}>${seller.username}</option>`;
+            });
+          }
         })
         .catch(err => {
           console.error(err);
@@ -208,6 +232,7 @@
 
     applyBtn.addEventListener('click', () => fetchData(1));
     searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') fetchData(1); });
+    sellerFilter.addEventListener('change', () => fetchData(1));   // auto-apply on seller change
 
     attachPaginationHandlers();
   </script>

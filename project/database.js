@@ -51,7 +51,7 @@ db.all("PRAGMA table_info(products)", (err, columns) => {
   }
 });
 
-// Sales: discount columns, sale_date, payment_method, returned, return_reason
+// Sales: discount columns, sale_date, payment_method, returned, return_reason, seller_id
 db.all("PRAGMA table_info(sales)", (err, columns) => {
   if (err) {
     console.error("Error checking sales schema:", err);
@@ -110,6 +110,14 @@ db.all("PRAGMA table_info(sales)", (err, columns) => {
     db.run("ALTER TABLE sales ADD COLUMN return_reason TEXT", (err) => {
       if (err) console.error("Failed to add return_reason column:", err);
       else console.log("Added return_reason column to sales");
+    });
+  }
+
+  const hasSellerId = columns.some(col => col.name === 'seller_id');
+  if (!hasSellerId) {
+    db.run("ALTER TABLE sales ADD COLUMN seller_id INTEGER REFERENCES users(id)", (err) => {
+      if (err) console.error("Failed to add seller_id column:", err);
+      else console.log("Added seller_id column to sales");
     });
   }
 });
@@ -181,7 +189,9 @@ db.serialize(() => {
     payment_method TEXT DEFAULT 'Cash',
     returned INTEGER DEFAULT 0,
     return_reason TEXT,
-    FOREIGN KEY (customer_id) REFERENCES customers(id)
+    seller_id INTEGER,
+    FOREIGN KEY (customer_id) REFERENCES customers(id),
+                                    FOREIGN KEY (seller_id) REFERENCES users(id)
   )
   `);
 

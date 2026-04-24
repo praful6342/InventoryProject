@@ -100,6 +100,8 @@ router.post('/checkout', (req, res) => {
     return res.status(400).send('Invalid sale date');
   }
 
+  const sellerId = req.session.user.id;   // Capture seller ID
+
   const preDiscountTotal = cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
 
   db.serialize(() => {
@@ -143,9 +145,9 @@ router.post('/checkout', (req, res) => {
             }
 
             db.run(
-              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date, payment_method)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date, payment_method || 'Cash'],
+              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date, payment_method, seller_id)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date, payment_method || 'Cash', sellerId],
                    function(err) {
                      if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating sale'); }
                      const saleId = this.lastID;
@@ -218,6 +220,8 @@ router.post('/return/:saleId', (req, res) => {
     return res.status(400).send('Return reason is required');
   }
 
+  const sellerId = req.session.user.id;   // Capture seller ID for return
+
   db.get('SELECT total_amount, profit, customer_id, returned FROM sales WHERE id = ?', [saleId], (err, originalSale) => {
     if (err) return res.status(500).send('Database error');
     if (!originalSale) return res.status(404).send('Original sale not found');
@@ -232,9 +236,9 @@ router.post('/return/:saleId', (req, res) => {
 
         const billNumber = 'RET-' + generateBillNumber();
         db.run(
-          `INSERT INTO sales (customer_id, total_amount, profit, bill_number, payment_method, returned, sale_date, return_reason)
-          VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-               [originalSale.customer_id, -originalSale.total_amount, -originalSale.profit, billNumber, 'Return', returnDate, returnReason.trim()],
+          `INSERT INTO sales (customer_id, total_amount, profit, bill_number, payment_method, returned, sale_date, return_reason, seller_id)
+          VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+               [originalSale.customer_id, -originalSale.total_amount, -originalSale.profit, billNumber, 'Return', returnDate, returnReason.trim(), sellerId],
                function(err) {
                  if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating return sale'); }
                  const returnSaleId = this.lastID;
@@ -273,13 +277,14 @@ router.post('/return/:saleId', (req, res) => {
   });
 });
 
-// Sales history with search
+// Sales history with search (includes seller name)
 router.get('/sales', (req, res) => {
   const search = req.query.search ? req.query.search.trim() : '';
   let salesQuery = `
-  SELECT s.*, c.name as customer_name, c.phone as customer_phone
+  SELECT s.*, c.name as customer_name, c.phone as customer_phone, u.username as seller_name
   FROM sales s
   LEFT JOIN customers c ON s.customer_id = c.id
+  LEFT JOIN users u ON s.seller_id = u.id
   `;
   const params = [];
 
@@ -323,9 +328,9 @@ router.get('/sales', (req, res) => {
   });
 });
 
-// Sold products list with discount allocation
+// Sold products list with discount allocation and seller filtering
 router.get('/sold-products', async (req, res) => {
-  const { start_date, end_date, search, page = 1, limit = 50 } = req.query;
+  const { start_date, end_date, search, seller_id, page = 1, limit = 50 } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
   const effectiveDate = "COALESCE(s.sale_date, DATE(s.created_at, 'localtime'))";
   const where = [];
@@ -339,8 +344,13 @@ router.get('/sold-products', async (req, res) => {
     where.push(`(p.name LIKE ? OR s.bill_number LIKE ? OR p.product_code LIKE ?)`);
     params.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
+  if (seller_id) {
+    where.push('s.seller_id = ?');
+    params.push(seller_id);
+  }
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
+  // Count total items
   const countQuery = `
   SELECT COUNT(*) as total
   FROM sale_items si
@@ -354,6 +364,7 @@ router.get('/sold-products', async (req, res) => {
   const totalItems = countResult.total;
   const totalPages = Math.ceil(totalItems / limit);
 
+  // Main query with discount calculation and seller name
   const query = `
   SELECT
   si.id,
@@ -369,6 +380,7 @@ router.get('/sold-products', async (req, res) => {
            s.discount_type,
            s.discount_value,
            s.discount_amount,
+           u.username as seller_name,
            CASE
            WHEN s.discount_amount > 0 AND s.total_amount + s.discount_amount > 0
            THEN ROUND((si.quantity * si.price_at_sale) * 1.0 / (s.total_amount + s.discount_amount) * s.discount_amount, 2)
@@ -383,6 +395,7 @@ router.get('/sold-products', async (req, res) => {
            FROM sale_items si
            JOIN sales s ON si.sale_id = s.id
            JOIN products p ON si.product_id = p.id
+           LEFT JOIN users u ON s.seller_id = u.id
            ${whereClause}
            ORDER BY ${effectiveDate} DESC, s.id DESC
            LIMIT ? OFFSET ?
@@ -393,14 +406,24 @@ router.get('/sold-products', async (req, res) => {
              db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows));
            });
 
+           // Fetch list of sellers for filter dropdown
+           const sellers = await new Promise((resolve, reject) => {
+             db.all("SELECT id, username FROM users WHERE role IN ('admin', 'seller') ORDER BY username", (err, rows) => {
+               if (err) reject(err);
+               else resolve(rows);
+             });
+           });
+
            if (req.xhr || (req.headers.accept && req.headers.accept.includes('json'))) {
-             res.json({ items, totalPages, currentPage: parseInt(page), totalItems });
+             res.json({ items, totalPages, currentPage: parseInt(page), totalItems, sellers });
            } else {
              res.render('sold-products', {
                items,
+               sellers,
                start_date: start_date || '',
                end_date: end_date || '',
                search: search || '',
+               seller_id: seller_id || '',
                currentPage: parseInt(page),
                         totalPages,
                         totalItems
@@ -552,6 +575,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
             // Update customer if name provided
             let customerId = originalSale.customer_id;
             const updateSaleRecord = (custId) => {
+              // Preserve original seller_id; do not change it on edit
               db.run(
                 `UPDATE sales SET customer_id = ?, total_amount = ?, profit = ?, discount_type = ?, discount_value = ?, discount_amount = ?, sale_date = ?, payment_method = ?
                 WHERE id = ?`,

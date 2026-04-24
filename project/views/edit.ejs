@@ -248,14 +248,15 @@
       }
     });
 
-    // Auto-calculate margin and selling price
+    // Auto-calculate margin and selling price (with ceiling)
     function calculatePrices() {
       const cost = parseFloat(document.getElementById('cost_price').value) || 0;
       const marginPercent = parseFloat(document.getElementById('margin_percent').value) || 0;
       const marginAmount = cost * (marginPercent / 100);
-      const sellingPrice = cost + marginAmount;
+      const rawSellingPrice = cost + marginAmount;
+      const sellingPrice = Math.ceil(rawSellingPrice);   // Round up to nearest integer
       document.getElementById('margin_rs').value = marginAmount.toFixed(2);
-      document.getElementById('selling_price').value = sellingPrice.toFixed(2);
+      document.getElementById('selling_price').value = sellingPrice;
     }
     document.getElementById('cost_price').addEventListener('input', calculatePrices);
     document.getElementById('margin_percent').addEventListener('input', calculatePrices);

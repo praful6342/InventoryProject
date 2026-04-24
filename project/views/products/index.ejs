@@ -342,14 +342,15 @@
       }
     });
 
-    // ========== AUTO-CALCULATE MARGIN & SELLING PRICE ==========
+    // ========== AUTO-CALCULATE MARGIN & SELLING PRICE (with ceiling) ==========
     function calculateModalPrices() {
       const cost = parseFloat(document.getElementById('modal-cost_price').value) || 0;
       const marginPercent = parseFloat(document.getElementById('modal-margin_percent').value) || 0;
       const marginAmount = cost * (marginPercent / 100);
-      const sellingPrice = cost + marginAmount;
+      const rawSellingPrice = cost + marginAmount;
+      const sellingPrice = Math.ceil(rawSellingPrice);   // Round up to nearest integer
       document.getElementById('modal-margin_rs').value = marginAmount.toFixed(2);
-      document.getElementById('modal-selling_price').value = sellingPrice.toFixed(2);
+      document.getElementById('modal-selling_price').value = sellingPrice;
     }
     document.getElementById('modal-cost_price').addEventListener('input', calculateModalPrices);
     document.getElementById('modal-margin_percent').addEventListener('input', calculateModalPrices);

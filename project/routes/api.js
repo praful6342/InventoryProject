@@ -146,4 +146,15 @@ router.get('/qr/:code', (req, res) => {
   });
 });
 
+// Optional: Get list of sellers for filter dropdowns
+router.get('/sellers', (req, res) => {
+  db.all("SELECT id, username FROM users WHERE role IN ('admin', 'seller') ORDER BY username", (err, users) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(users);
+  });
+});
+
 module.exports = router;

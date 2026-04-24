@@ -41,6 +41,7 @@
                 <%= sale.sale_date ? new Date(sale.sale_date).toLocaleDateString() : new Date(sale.created_at).toLocaleDateString() %>
                 | Total: ₹<%= sale.total_amount.toFixed(2) %>
                 | Payment: <%= sale.payment_method || 'Cash' %>
+                | Sold by: <%= sale.seller_name || 'Unknown' %>
                 <% if (sale.customer_name) { %> | Customer: <%= sale.customer_name %><% } %>
                 <% if (sale.total_amount < 0) { %> | <span class="text-warning fw-bold">Return Bill</span><% } %>
                 <% if (sale.returned == 1 && sale.total_amount >= 0) { %> | <span class="text-danger fw-bold">Returned</span><% } %>

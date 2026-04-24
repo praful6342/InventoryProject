@@ -30,8 +30,6 @@ router.post('/add', isAdmin, (req, res) => {
     supplier,
     cost_price,
     margin_percent,
-    margin_rs,
-    selling_price,
     sizes,
     has_sizes,
     stock,
@@ -55,12 +53,19 @@ router.post('/add', isAdmin, (req, res) => {
   const productCode = generateProductCode(category, name);
   const hasSizes = has_sizes === "on" ? 1 : 0;
 
+  // Recalculate margin_rs and selling_price on server (rounded up)
+  const cost = parseFloat(cost_price);
+  const marginPercent = parseFloat(margin_percent);
+  const marginRs = cost * (marginPercent / 100);
+  const rawSelling = cost + marginRs;
+  const selling_price = Math.ceil(rawSelling);
+
   // Insert product with the provided created_at
   db.run(
     `INSERT INTO products
     (product_code, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, has_sizes, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-         [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, hasSizes, created_at],
+         [productCode, category, name, supplier, cost, marginPercent, marginRs, selling_price, hasSizes, created_at],
          function(err) {
            if (err) {
              console.error(err);
@@ -173,8 +178,6 @@ router.post('/update/:id', isAdmin, (req, res) => {
     supplier,
     cost_price,
     margin_percent,
-    margin_rs,
-    selling_price,
     sizes,
     has_sizes,
     stock,
@@ -198,6 +201,13 @@ router.post('/update/:id', isAdmin, (req, res) => {
   const productCode = generateProductCode(category, name);
   const hasSizes = has_sizes === "on" ? 1 : 0;
 
+  // Recalculate margin_rs and selling_price on server (rounded up)
+  const cost = parseFloat(cost_price);
+  const marginPercent = parseFloat(margin_percent);
+  const marginRs = cost * (marginPercent / 100);
+  const rawSelling = cost + marginRs;
+  const selling_price = Math.ceil(rawSelling);
+
   // Conditional validation for sizes/stock
   if (hasSizes) {
     let sizeEntries = [];
@@ -216,7 +226,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
     }
   }
 
-  // Update product including created_at
+  // Update product including recalculated margin_rs and selling_price
   db.run(
     `UPDATE products SET
     product_code = ?,
@@ -230,7 +240,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
     has_sizes = ?,
     created_at = ?
     WHERE id = ?`,
-    [productCode, category, name, supplier, cost_price, margin_percent, margin_rs, selling_price, hasSizes, created_at, id],
+    [productCode, category, name, supplier, cost, marginPercent, marginRs, selling_price, hasSizes, created_at, id],
     function(err) {
       if (err) {
         console.error(err);
