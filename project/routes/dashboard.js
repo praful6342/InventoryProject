@@ -54,13 +54,15 @@ async function getChartData(dateCondition) {
   });
 }
 
-// Helper to get payment method breakdown for the given date condition
+// Helper to get payment method breakdown from sale_payments table
 async function getPaymentBreakdown(dateCondition) {
+  // Join sale_payments with sales, apply date condition, group by payment_method
   const query = `
-  SELECT payment_method, COALESCE(SUM(total_amount), 0) as total
-  FROM sales s
+  SELECT sp.payment_method, COALESCE(SUM(sp.amount), 0) as total
+  FROM sale_payments sp
+  JOIN sales s ON sp.sale_id = s.id
   WHERE ${dateCondition}
-  GROUP BY payment_method
+  GROUP BY sp.payment_method
   ORDER BY total DESC
   `;
   return new Promise((resolve, reject) => {
@@ -96,7 +98,7 @@ router.get('/', async (req, res) => {
       );
     });
 
-    // Payment method breakdown
+    // Payment method breakdown (from sale_payments)
     const paymentBreakdown = await getPaymentBreakdown(dateCondition);
 
     // Stock & inventory values (global, independent of date)

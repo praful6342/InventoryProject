@@ -85,13 +85,13 @@ router.get('/checkout', (req, res) => {
   res.render('checkout', { cart: req.session.cart, total });
 });
 
-// Process sale
+// Process sale with split payments
 router.post('/checkout', (req, res) => {
-  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payment_method } = req.body;
+  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payments } = req.body;
   const cart = req.session.cart;
   if (!cart || cart.length === 0) return res.redirect('/sale/cart');
 
-  // Validate sale_date is provided and valid
+  // Validate sale date
   if (!sale_date) {
     return res.status(400).send('Sale date is required');
   }
@@ -100,8 +100,16 @@ router.post('/checkout', (req, res) => {
     return res.status(400).send('Invalid sale date');
   }
 
-  const sellerId = req.session.user.id;   // Capture seller ID
+  // Validate payments array
+  let paymentsArray = [];
+  if (payments && Array.isArray(payments)) {
+    paymentsArray = payments.filter(p => p.method && p.amount && parseFloat(p.amount) > 0);
+  }
+  if (paymentsArray.length === 0) {
+    return res.status(400).send('At least one payment method is required');
+  }
 
+  const sellerId = req.session.user.id;
   const preDiscountTotal = cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
 
   db.serialize(() => {
@@ -144,53 +152,77 @@ router.post('/checkout', (req, res) => {
               profitTotal -= discountAmount;
             }
 
+            // Compute total paid from payments
+            let totalPaid = 0;
+            paymentsArray.forEach(p => { totalPaid += parseFloat(p.amount); });
+            const overpayment = totalPaid - finalTotal;
+            const changeToReturn = overpayment > 0 ? overpayment : 0;
+            // If overpaid, we still record payments as given, but change will be shown on bill
+            // We store totalPaid (maybe not in sales table), but we can store finalTotal as total_amount
+
             db.run(
-              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date, payment_method, seller_id)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date, payment_method || 'Cash', sellerId],
+              `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date, seller_id)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                   [customerId, finalTotal, profitTotal, billNumber, discount_type || null, discount_value || null, discountAmount, sale_date, sellerId],
                    function(err) {
                      if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating sale'); }
                      const saleId = this.lastID;
 
-                     let itemsInserted = 0;
-                     items.forEach(item => {
+                     // Insert payments into sale_payments table
+                     let paymentsInserted = 0;
+                     paymentsArray.forEach(payment => {
                        db.run(
-                         `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item, size)
-                         VALUES (?, ?, ?, ?, ?, ?)`,
-                              [saleId, item.product_id, item.quantity, item.price_at_sale, item.profit_on_item, item.size],
+                         `INSERT INTO sale_payments (sale_id, payment_method, amount) VALUES (?, ?, ?)`,
+                              [saleId, payment.method, parseFloat(payment.amount)],
                               err => {
-                                if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating sale items'); }
-                                if (++itemsInserted === items.length) updateStock(saleId);
+                                if (err) { db.run('ROLLBACK'); return res.status(500).send('Error inserting payment'); }
+                                if (++paymentsInserted === paymentsArray.length) {
+                                  // Insert sale items and update stock
+                                  let itemsInserted = 0;
+                                  items.forEach(item => {
+                                    db.run(
+                                      `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item, size)
+                                      VALUES (?, ?, ?, ?, ?, ?)`,
+                                           [saleId, item.product_id, item.quantity, item.price_at_sale, item.profit_on_item, item.size],
+                                           err => {
+                                             if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating sale items'); }
+                                             if (++itemsInserted === items.length) updateStock(saleId);
+                                           }
+                                    );
+                                  });
+                                }
                               }
                        );
                      });
+
+                     const updateStock = (saleId) => {
+                       let stockUpdated = 0;
+                       cart.forEach(item => {
+                         db.get('SELECT id, stock FROM product_variants WHERE product_id = ? AND size = ?', [item.productId, item.size], (err, variant) => {
+                           if (err || !variant) { db.run('ROLLBACK'); return res.status(500).send('Variant not found'); }
+                           const newStock = variant.stock - item.quantity;
+                           if (newStock < 0) { db.run('ROLLBACK'); return res.status(500).send('Stock insufficient'); }
+                           db.run('UPDATE product_variants SET stock = ? WHERE id = ?', [newStock, variant.id], err => {
+                             if (err) { db.run('ROLLBACK'); return res.status(500).send('Error updating stock'); }
+                             if (++stockUpdated === cart.length) {
+                               db.run('COMMIT', err => {
+                                 if (err) return res.status(500).send('Error finalizing sale');
+                                 req.session.cart = [];
+                                 if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
+                                 // Optionally store change amount in session to display on bill page
+                                 req.session.lastSaleChange = changeToReturn;
+                                 res.redirect(`/bill/${saleId}`);
+                               });
+                             }
+                           });
+                         });
+                       });
+                     };
                    }
             );
           }
         });
       });
-
-      const updateStock = (saleId) => {
-        let stockUpdated = 0;
-        cart.forEach(item => {
-          db.get('SELECT id, stock FROM product_variants WHERE product_id = ? AND size = ?', [item.productId, item.size], (err, variant) => {
-            if (err || !variant) { db.run('ROLLBACK'); return res.status(500).send('Variant not found'); }
-            const newStock = variant.stock - item.quantity;
-            if (newStock < 0) { db.run('ROLLBACK'); return res.status(500).send('Stock insufficient'); }
-            db.run('UPDATE product_variants SET stock = ? WHERE id = ?', [newStock, variant.id], err => {
-              if (err) { db.run('ROLLBACK'); return res.status(500).send('Error updating stock'); }
-              if (++stockUpdated === cart.length) {
-                db.run('COMMIT', err => {
-                  if (err) return res.status(500).send('Error finalizing sale');
-                  req.session.cart = [];
-                  if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
-                  res.redirect(`/bill/${saleId}`);
-                });
-              }
-            });
-          });
-        });
-      };
     };
 
     if (customerName) {
@@ -209,18 +241,17 @@ router.post('/checkout', (req, res) => {
   });
 });
 
-// Return sale
+// Return sale (also handles payments for return bill)
 router.post('/return/:saleId', (req, res) => {
   const saleId = req.params.saleId;
   const returnDate = req.body.return_date || null;
   const returnReason = req.body.return_reason;
 
-  // Validate return reason (required)
   if (!returnReason || returnReason.trim() === '') {
     return res.status(400).send('Return reason is required');
   }
 
-  const sellerId = req.session.user.id;   // Capture seller ID for return
+  const sellerId = req.session.user.id;
 
   db.get('SELECT total_amount, profit, customer_id, returned FROM sales WHERE id = ?', [saleId], (err, originalSale) => {
     if (err) return res.status(500).send('Database error');
@@ -242,6 +273,16 @@ router.post('/return/:saleId', (req, res) => {
                function(err) {
                  if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating return sale'); }
                  const returnSaleId = this.lastID;
+
+                 // For return, we also create a negative payment record (optional) but not required.
+                 // To keep payment method consistent, create a single payment row with method 'Return'
+                 db.run(
+                   `INSERT INTO sale_payments (sale_id, payment_method, amount) VALUES (?, ?, ?)`,
+                        [returnSaleId, 'Return', -originalSale.total_amount],
+                        err => {
+                          if (err) console.error('Error inserting return payment:', err);
+                        }
+                 );
 
                  let itemsInserted = 0;
                  items.forEach(item => {
@@ -277,7 +318,7 @@ router.post('/return/:saleId', (req, res) => {
   });
 });
 
-// Sales history with search (includes seller name)
+// Sales history with search (includes payments)
 router.get('/sales', (req, res) => {
   const search = req.query.search ? req.query.search.trim() : '';
   let salesQuery = `
@@ -310,6 +351,7 @@ router.get('/sales', (req, res) => {
 
     const saleIds = sales.map(s => s.id);
     const placeholders = saleIds.map(() => '?').join(',');
+    // Fetch sale items
     db.all(`
     SELECT si.*, p.name as product_name, p.product_code
     FROM sale_items si
@@ -322,13 +364,27 @@ router.get('/sales', (req, res) => {
         if (!itemsBySale[item.sale_id]) itemsBySale[item.sale_id] = [];
         itemsBySale[item.sale_id].push(item);
       });
-      sales.forEach(sale => sale.items = itemsBySale[sale.id] || []);
-      res.render('sales', { sales, search });
+
+      // Fetch payments for each sale
+      db.all(`SELECT sale_id, payment_method, amount FROM sale_payments WHERE sale_id IN (${placeholders})`, saleIds, (err, payments) => {
+        if (err) return res.status(500).send('Database error');
+        const paymentsBySale = {};
+        payments.forEach(p => {
+          if (!paymentsBySale[p.sale_id]) paymentsBySale[p.sale_id] = [];
+          paymentsBySale[p.sale_id].push({ method: p.payment_method, amount: p.amount });
+        });
+
+        sales.forEach(sale => {
+          sale.items = itemsBySale[sale.id] || [];
+          sale.payments = paymentsBySale[sale.id] || [];
+        });
+        res.render('sales', { sales, search });
+      });
     });
   });
 });
 
-// Sold products list with discount allocation and seller filtering
+// Sold products list (no changes needed for payments because it aggregates per item)
 router.get('/sold-products', async (req, res) => {
   const { start_date, end_date, search, seller_id, page = 1, limit = 50 } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -350,7 +406,6 @@ router.get('/sold-products', async (req, res) => {
   }
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-  // Count total items
   const countQuery = `
   SELECT COUNT(*) as total
   FROM sale_items si
@@ -364,7 +419,6 @@ router.get('/sold-products', async (req, res) => {
   const totalItems = countResult.total;
   const totalPages = Math.ceil(totalItems / limit);
 
-  // Main query with discount calculation and seller name
   const query = `
   SELECT
   si.id,
@@ -406,7 +460,6 @@ router.get('/sold-products', async (req, res) => {
              db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows));
            });
 
-           // Fetch list of sellers for filter dropdown
            const sellers = await new Promise((resolve, reject) => {
              db.all("SELECT id, username FROM users WHERE role IN ('admin', 'seller') ORDER BY username", (err, rows) => {
                if (err) reject(err);
@@ -432,7 +485,6 @@ router.get('/sold-products', async (req, res) => {
 });
 
 // ==================== EDIT SALE ====================
-// GET /sale/edit/:id - show edit form (admin only)
 router.get('/edit/:id', isAdmin, (req, res) => {
   const saleId = req.params.id;
 
@@ -457,25 +509,28 @@ router.get('/edit/:id', isAdmin, (req, res) => {
     `, [saleId], (err, items) => {
       if (err) return res.status(500).send('Database error');
 
-      // Fetch all products for dropdown
-      db.all('SELECT id, name, product_code, selling_price, has_sizes FROM products ORDER BY name', (err, products) => {
+      // Fetch payments
+      db.all('SELECT id, payment_method, amount FROM sale_payments WHERE sale_id = ?', [saleId], (err, payments) => {
         if (err) return res.status(500).send('Database error');
-        res.render('edit-sale', { sale, items, products });
+
+        db.all('SELECT id, name, product_code, selling_price, has_sizes FROM products ORDER BY name', (err, products) => {
+          if (err) return res.status(500).send('Database error');
+          res.render('edit-sale', { sale, items, products, payments });
+        });
       });
     });
   });
 });
 
-// POST /sale/update/:id - process edit (admin only)
+// POST /sale/update/:id - process edit (admin only) - also update payments
 router.post('/update/:id', isAdmin, (req, res) => {
   const saleId = req.params.id;
-  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payment_method, items } = req.body;
+  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payment_method, items, payments } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).send('At least one item is required');
   }
 
-  // Validate sale_date
   if (!sale_date) {
     return res.status(400).send('Sale date is required');
   }
@@ -492,7 +547,12 @@ router.post('/update/:id', isAdmin, (req, res) => {
                                       price_at_sale: parseFloat(item.price_at_sale)
   }));
 
-  // Get original sale for stock reversal and comparison
+  // Parse payments
+  let paymentsArray = [];
+  if (payments && Array.isArray(payments)) {
+    paymentsArray = payments.filter(p => p.method && p.amount && parseFloat(p.amount) > 0);
+  }
+
   db.get('SELECT * FROM sales WHERE id = ?', [saleId], (err, originalSale) => {
     if (err) return res.status(500).send('Database error');
     if (!originalSale) return res.status(404).send('Sale not found');
@@ -505,7 +565,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
 
-        // Step 1: Restore stock from old items
+        // Restore stock from old items
         let stockRestored = 0;
         oldItems.forEach(item => {
           db.get('SELECT id FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
@@ -523,7 +583,6 @@ router.post('/update/:id', isAdmin, (req, res) => {
         });
 
         const proceedAfterRestore = () => {
-          // Step 2: Calculate new totals and validate stock
           let preDiscountTotal = 0;
           let profitTotal = 0;
           let itemsValidated = 0;
@@ -572,50 +631,69 @@ router.post('/update/:id', isAdmin, (req, res) => {
               profitTotal -= discountAmount;
             }
 
-            // Update customer if name provided
             let customerId = originalSale.customer_id;
             const updateSaleRecord = (custId) => {
-              // Preserve original seller_id; do not change it on edit
               db.run(
-                `UPDATE sales SET customer_id = ?, total_amount = ?, profit = ?, discount_type = ?, discount_value = ?, discount_amount = ?, sale_date = ?, payment_method = ?
+                `UPDATE sales SET customer_id = ?, total_amount = ?, profit = ?, discount_type = ?, discount_value = ?, discount_amount = ?, sale_date = ?
                 WHERE id = ?`,
-                [custId, finalTotal, profitTotal, discount_type || null, discount_value || null, discountAmount, sale_date, payment_method || 'Cash', saleId],
+                [custId, finalTotal, profitTotal, discount_type || null, discount_value || null, discountAmount, sale_date, saleId],
                 err => {
                   if (err) { db.run('ROLLBACK'); return res.status(500).send('Error updating sale'); }
 
-                  // Delete old items
+                  // Delete old sale_items and old payments
                   db.run('DELETE FROM sale_items WHERE sale_id = ?', [saleId], err => {
                     if (err) { db.run('ROLLBACK'); return res.status(500).send('Error removing old items'); }
+                    db.run('DELETE FROM sale_payments WHERE sale_id = ?', [saleId], err => {
+                      if (err) { db.run('ROLLBACK'); return res.status(500).send('Error removing old payments'); }
 
-                    // Insert new items and deduct stock
-                    let itemsInserted = 0;
-                    newItems.forEach(item => {
-                      db.get('SELECT cost_price FROM products WHERE id = ?', [item.product_id], (err, product) => {
-                        const profitOnItem = (item.price_at_sale - product.cost_price) * item.quantity;
-                        db.run(
-                          `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item, size)
-                          VALUES (?, ?, ?, ?, ?, ?)`,
-                               [saleId, item.product_id, item.quantity, item.price_at_sale, profitOnItem, item.size],
-                               err => {
-                                 if (err) { db.run('ROLLBACK'); return res.status(500).send('Error inserting sale items'); }
+                      // Insert new payments
+                      let paymentsInserted = 0;
+                      if (paymentsArray.length === 0) {
+                        insertItemsAndStock();
+                      } else {
+                        paymentsArray.forEach(payment => {
+                          db.run(
+                            `INSERT INTO sale_payments (sale_id, payment_method, amount) VALUES (?, ?, ?)`,
+                                 [saleId, payment.method, parseFloat(payment.amount)],
+                                 err => {
+                                   if (err) { db.run('ROLLBACK'); return res.status(500).send('Error inserting payment'); }
+                                   if (++paymentsInserted === paymentsArray.length) {
+                                     insertItemsAndStock();
+                                   }
+                                 }
+                          );
+                        });
+                      }
 
-                                 // Deduct stock
-                                 db.get('SELECT id FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
-                                   if (err || !variant) { db.run('ROLLBACK'); return res.status(500).send('Variant not found'); }
-                                   db.run('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [item.quantity, variant.id], err => {
-                                     if (err) { db.run('ROLLBACK'); return res.status(500).send('Error deducting stock'); }
-                                     if (++itemsInserted === newItems.length) {
-                                       db.run('COMMIT', err => {
-                                         if (err) return res.status(500).send('Error finalizing update');
-                                         if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
-                                         res.redirect(`/bill/${saleId}`);
+                      const insertItemsAndStock = () => {
+                        let itemsInserted = 0;
+                        newItems.forEach(item => {
+                          db.get('SELECT cost_price FROM products WHERE id = ?', [item.product_id], (err, product) => {
+                            const profitOnItem = (item.price_at_sale - product.cost_price) * item.quantity;
+                            db.run(
+                              `INSERT INTO sale_items (sale_id, product_id, quantity, price_at_sale, profit_on_item, size)
+                              VALUES (?, ?, ?, ?, ?, ?)`,
+                                   [saleId, item.product_id, item.quantity, item.price_at_sale, profitOnItem, item.size],
+                                   err => {
+                                     if (err) { db.run('ROLLBACK'); return res.status(500).send('Error inserting sale items'); }
+                                     db.get('SELECT id FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
+                                       if (err || !variant) { db.run('ROLLBACK'); return res.status(500).send('Variant not found'); }
+                                       db.run('UPDATE product_variants SET stock = stock - ? WHERE id = ?', [item.quantity, variant.id], err => {
+                                         if (err) { db.run('ROLLBACK'); return res.status(500).send('Error deducting stock'); }
+                                         if (++itemsInserted === newItems.length) {
+                                           db.run('COMMIT', err => {
+                                             if (err) return res.status(500).send('Error finalizing update');
+                                             if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
+                                             res.redirect(`/bill/${saleId}`);
+                                           });
+                                         }
                                        });
-                                     }
-                                   });
-                                 });
-                               }
-                        );
-                      });
+                                     });
+                                   }
+                            );
+                          });
+                        });
+                      };
                     });
                   });
                 }
@@ -623,7 +701,6 @@ router.post('/update/:id', isAdmin, (req, res) => {
             };
 
             if (customerName) {
-              // Update or insert customer
               if (customerId) {
                 db.run(
                   'UPDATE customers SET name = ?, phone = ?, email = ? WHERE id = ?',
@@ -653,7 +730,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
   });
 });
 
-// POST /sale/delete/:id - delete a sale (admin only)
+// Delete sale (admin only) - also delete associated payments
 router.post('/delete/:id', isAdmin, (req, res) => {
   const saleId = req.params.id;
 
@@ -689,18 +766,21 @@ router.post('/delete/:id', isAdmin, (req, res) => {
         }
 
         const deleteSaleRecord = () => {
-          db.run('DELETE FROM sale_items WHERE sale_id = ?', [saleId], err => {
-            if (err) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Error deleting sale items' }); }
-            db.run('DELETE FROM sales WHERE id = ?', [saleId], err => {
-              if (err) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Error deleting sale' }); }
-              db.run('COMMIT', err => {
-                if (err) return res.status(500).json({ error: 'Error committing deletion' });
-                if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
-                if (req.xhr || req.headers.accept.includes('json')) {
-                  res.json({ success: true });
-                } else {
-                  res.redirect('/sale/sales');
-                }
+          db.run('DELETE FROM sale_payments WHERE sale_id = ?', [saleId], err => {
+            if (err) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Error deleting payments' }); }
+            db.run('DELETE FROM sale_items WHERE sale_id = ?', [saleId], err => {
+              if (err) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Error deleting sale items' }); }
+              db.run('DELETE FROM sales WHERE id = ?', [saleId], err => {
+                if (err) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Error deleting sale' }); }
+                db.run('COMMIT', err => {
+                  if (err) return res.status(500).json({ error: 'Error committing deletion' });
+                  if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
+                  if (req.xhr || req.headers.accept.includes('json')) {
+                    res.json({ success: true });
+                  } else {
+                    res.redirect('/sale/sales');
+                  }
+                });
               });
             });
           });

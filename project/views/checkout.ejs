@@ -24,6 +24,29 @@
       border: none;
       color: #065f46;
     }
+    .payment-row {
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    .remove-payment {
+      cursor: pointer;
+      color: #dc3545;
+    }
+    .remove-payment:hover {
+      color: #b91c1c;
+    }
+    .remaining-amount {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .change-display {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #059669;
+    }
   </style>
 </head>
 <body>
@@ -36,7 +59,7 @@
     <div class="row">
       <div class="col-md-7">
         <div class="card p-4">
-          <form action="/sale/checkout" method="POST">
+          <form action="/sale/checkout" method="POST" id="checkoutForm">
             <!-- Customer Information -->
             <h4 class="mb-3">Customer Information (Optional)</h4>
             <div class="mb-3">
@@ -74,7 +97,7 @@
               </div>
               <div class="row">
                 <div class="col-md-6">
-                  <input type="number" class="form-control" id="discount_value" name="discount_value" min="0" step="0.01" placeholder="Enter value" autocomplete="off">
+                  <input type="number" step="0.01" class="form-control" id="discount_value" name="discount_value" min="0" placeholder="Enter value" autocomplete="off">
                 </div>
                 <div class="col-md-6">
                   <p class="mt-2"><strong>Total after discount: </strong><span id="discounted_total">₹<%= total.toFixed(2) %></span></p>
@@ -82,26 +105,55 @@
               </div>
             </div>
 
-            <!-- Payment Method Section -->
+            <!-- Split Payments Section -->
             <div class="card p-4 mt-3">
-              <h4 class="mb-3">Payment Method</h4>
-              <div class="mb-3">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="payment_method" id="payment_cash" value="Cash" checked>
-                  <label class="form-check-label" for="payment_cash">Cash</label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="payment_method" id="payment_upi" value="UPI">
-                  <label class="form-check-label" for="payment_upi">UPI</label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="payment_method" id="payment_card" value="Card">
-                  <label class="form-check-label" for="payment_card">Card</label>
+              <h4 class="mb-3">Payment Details</h4>
+              <div id="payments-container">
+                <div class="payment-row" data-index="0">
+                  <div class="row g-2 align-items-center">
+                    <div class="col-md-5">
+                      <label class="form-label">Payment Method</label>
+                      <select class="form-select payment-method" name="payments[0][method]" required>
+                        <option value="">Select</option>
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Card">Card</option>
+                      </select>
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label">Amount (₹)</label>
+                      <input type="number" step="0.01" class="form-control payment-amount" name="payments[0][amount]" min="0" step="0.01" required>
+                    </div>
+                    <div class="col-md-2 text-center">
+                      <i class="fa-solid fa-trash remove-payment" style="display: none;"></i>
+                    </div>
+                  </div>
                 </div>
               </div>
+              <button type="button" class="btn btn-outline-primary mt-2" id="addPaymentBtn">
+                <i class="fa-solid fa-plus"></i> Add another payment method
+              </button>
+              <hr>
+              <div class="row mt-2">
+                <div class="col-md-6">
+                  <strong>Remaining to pay:</strong>
+                </div>
+                <div class="col-md-6 text-end">
+                  <span id="remainingAmount" class="remaining-amount">₹<%= total.toFixed(2) %></span>
+                </div>
+              </div>
+              <div class="row mt-1" id="changeRow" style="display: none;">
+                <div class="col-md-6">
+                  <strong>Change to return:</strong>
+                </div>
+                <div class="col-md-6 text-end">
+                  <span id="changeAmount" class="change-display">₹0.00</span>
+                </div>
+              </div>
+              <div class="alert alert-warning mt-3" id="warningMsg" style="display: none;"></div>
             </div>
 
-            <button type="submit" class="btn btn-success btn-lg w-100 mt-4">Complete Sale</button>
+            <button type="submit" class="btn btn-success btn-lg w-100 mt-4" id="submitBtn">Complete Sale</button>
           </form>
         </div>
       </div>
@@ -113,13 +165,13 @@
             <% cart.forEach(item => { %>
               <% const itemTotal = item.selling_price * item.quantity; %>
               <li class="list-group-item d-flex justify-content-between align-items-center">
-                <%= item.name %> (<%= item.size %>) x <%= item.quantity %>
+                <%= item.name %> (<%= item.size === 'ONESIZE' ? '—' : item.size %>) x <%= item.quantity %>
                 <span class="badge bg-primary rounded-pill">₹<%= itemTotal.toFixed(2) %></span>
               </li>
             <% }); %>
             <li class="list-group-item d-flex justify-content-between align-items-center fw-bold">
               Total
-              <span class="badge bg-success rounded-pill fs-6">₹<%= total.toFixed(2) %></span>
+              <span class="badge bg-success rounded-pill fs-6" id="orderTotal">₹<%= total.toFixed(2) %></span>
             </li>
           </ul>
         </div>
@@ -130,28 +182,7 @@
   <%- include('partials/footer') %>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Discount calculation preview
-    const originalTotal = <%= total %>;
-    const discountTypeRadios = document.querySelectorAll('input[name="discount_type"]');
-    const discountValueInput = document.getElementById('discount_value');
-    const discountedTotalSpan = document.getElementById('discounted_total');
-
-    function updateDiscountedTotal() {
-      const type = document.querySelector('input[name="discount_type"]:checked')?.value;
-      const val = parseFloat(discountValueInput.value) || 0;
-      let discounted = originalTotal;
-
-      if (type === 'percentage' && val >= 0 && val <= 100) {
-        discounted = originalTotal * (1 - val / 100);
-      } else if (type === 'fixed' && val >= 0 && val <= originalTotal) {
-        discounted = originalTotal - val;
-      }
-      discountedTotalSpan.innerText = '₹' + discounted.toFixed(2);
-    }
-
-    discountTypeRadios.forEach(radio => radio.addEventListener('change', updateDiscountedTotal));
-    discountValueInput.addEventListener('input', updateDiscountedTotal);
-  </script>
+  <!-- External split-payment logic -->
+  <script src="/js/checkout-payments.js"></script>
 </body>
 </html>

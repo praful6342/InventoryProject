@@ -55,6 +55,18 @@
     .negative-amount {
       color: #dc3545;
     }
+    .payment-table {
+      width: 100%;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .payment-table td {
+      padding: 4px 0;
+    }
+    .change-text {
+      color: #059669;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -81,7 +93,6 @@
             <%= new Date(sale.created_at + 'Z').toLocaleString() %>
           <% } %>
         </p>
-        <p><strong>Payment Method:</strong> <%= sale.payment_method || 'Cash' %></p>
         <p><strong>Sold By:</strong> <%= sale.seller_name || 'Unknown' %></p>
         <% if (sale.customer_name) { %>
           <p><strong>Customer:</strong> <%= sale.customer_name %></p>
@@ -115,8 +126,8 @@
             <td>₹<%= item.price_at_sale.toFixed(2) %></td>
             <td class="<%= (item.price_at_sale * item.quantity) < 0 ? 'negative-amount' : '' %>">
               ₹<%= (item.price_at_sale * item.quantity).toFixed(2) %>
-            </td>
-          </tr>
+             </td>
+           </tr>
           <% }) %>
 
           <% if (sale.discount_amount && sale.discount_amount > 0) { %>
@@ -124,6 +135,32 @@
             <td colspan="4" style="text-align: right;">Discount (<%= sale.discount_type === 'percentage' ? sale.discount_value + '%' : '₹' + sale.discount_value %>):</td>
             <td>-₹<%= sale.discount_amount.toFixed(2) %></td>
           </tr>
+          <% } %>
+
+          <!-- Payment Methods Breakdown (split payments) -->
+          <% if (payments && payments.length > 0 && sale.total_amount >= 0) { %>
+            <tr>
+              <td colspan="5" style="padding: 0;">
+                <table class="payment-table" style="width: 100%; margin: 5px 0;">
+                  <% payments.forEach(payment => { %>
+                    <tr>
+                      <td style="text-align: right; padding-right: 10px;"><strong><%= payment.payment_method %>:</strong></td>
+                      <td style="text-align: left;">₹<%= payment.amount.toFixed(2) %></td>
+                    </tr>
+                  <% }) %>
+                  <tr class="total-row">
+                    <td style="text-align: right;"><strong>Total Paid:</strong></td>
+                    <td>₹<%= totalPaid ? parseFloat(totalPaid).toFixed(2) : '0.00' %></td>
+                  </tr>
+                  <% if (showChange && changeAmount > 0) { %>
+                    <tr class="change-text">
+                      <td style="text-align: right;"><strong>Change Returned:</strong></td>
+                      <td>₹<%= changeAmount %></td>
+                    </tr>
+                  <% } %>
+                </table>
+              </td>
+            </tr>
           <% } %>
 
           <tr class="total-row">

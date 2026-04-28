@@ -204,7 +204,7 @@ db.serialize(() => {
     price_at_sale REAL NOT NULL,
     profit_on_item REAL NOT NULL,
     size TEXT,
-    FOREIGN KEY (sale_id) REFERENCES sales(id),
+    FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                                          FOREIGN KEY (product_id) REFERENCES products(id)
   )
   `);
@@ -226,9 +226,8 @@ db.serialize(() => {
         if (err) {
           console.error("Error checking users count:", err);
         } else if (row.count === 0) {
-          // Use bcrypt to hash the default password
           const bcrypt = require('bcrypt');
-          const defaultPassword = 'admin123'; // Change this in production!
+          const defaultPassword = 'admin123';
           const hashed = bcrypt.hashSync(defaultPassword, 10);
           db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
                  ['admin', hashed, 'admin'],
@@ -239,6 +238,24 @@ db.serialize(() => {
           );
         }
       });
+    }
+  });
+
+  // NEW: Sale payments table for split payments
+  db.run(`
+  CREATE TABLE IF NOT EXISTS sale_payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sale_id INTEGER NOT NULL,
+    payment_method TEXT NOT NULL,
+    amount REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE
+  )
+  `, (err) => {
+    if (err) {
+      console.error("Error creating sale_payments table:", err);
+    } else {
+      console.log("sale_payments table ready (split payment support)");
     }
   });
 });
