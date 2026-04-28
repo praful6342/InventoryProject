@@ -14,12 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
         currentDiscountedTotal = originalTotal;
     }
 
-    // Set today's date as default for sale date
-    const saleDateInput = document.getElementById('saleDate');
-    if (saleDateInput) {
-        const today = new Date().toISOString().split('T')[0];
-        saleDateInput.value = today;
-    }
+    // Sale date: no default value (seller must pick manually)
+    // (We do NOT set any default date)
 
     // Attach event listeners to existing payment rows
     attachEventToAllPaymentRows();
@@ -48,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateRemaining();
 });
 
-// Helper: Update displayed discounted total from discount inputs
+// Helper: Update displayed discounted total from discount inputs (with rounding)
 function updateDiscountedTotal() {
     const type = document.querySelector('input[name="discount_type"]:checked')?.value;
     const val = parseFloat(document.getElementById('discount_value')?.value) || 0;
@@ -59,6 +55,8 @@ function updateDiscountedTotal() {
     } else if (type === 'fixed' && val >= 0 && val <= originalTotal) {
         discounted = originalTotal - val;
     }
+    // Round up to the nearest whole rupee
+    discounted = Math.ceil(discounted);
     currentDiscountedTotal = discounted;
 
     const discountedTotalSpan = document.getElementById('discounted_total');
@@ -108,8 +106,6 @@ function updateRemaining() {
         if (warningMsg) warningMsg.style.display = 'none';
         if (submitBtn) submitBtn.disabled = (remaining > 0);
     }
-
-    // Mark last row for auto-fill (will be handled on blur)
 }
 
 // Auto-fill the last payment row when it loses focus if remaining > 0 and amount empty
@@ -117,7 +113,6 @@ function autoFillLastRow(row) {
     const rows = document.querySelectorAll('.payment-row');
     if (rows.length === 0) return;
     const lastRow = rows[rows.length - 1];
-    // Only auto-fill the row that triggered the event if it's the last row
     if (row !== lastRow) return;
 
     const amountInput = lastRow.querySelector('.payment-amount');

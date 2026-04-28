@@ -85,13 +85,12 @@ router.get('/checkout', (req, res) => {
   res.render('checkout', { cart: req.session.cart, total });
 });
 
-// Process sale with split payments
+// Process sale with split payments and rounding
 router.post('/checkout', (req, res) => {
   const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payments } = req.body;
   const cart = req.session.cart;
   if (!cart || cart.length === 0) return res.redirect('/sale/cart');
 
-  // Validate sale date
   if (!sale_date) {
     return res.status(400).send('Sale date is required');
   }
@@ -100,7 +99,6 @@ router.post('/checkout', (req, res) => {
     return res.status(400).send('Invalid sale date');
   }
 
-  // Validate payments array
   let paymentsArray = [];
   if (payments && Array.isArray(payments)) {
     paymentsArray = payments.filter(p => p.method && p.amount && parseFloat(p.amount) > 0);
@@ -152,13 +150,16 @@ router.post('/checkout', (req, res) => {
               profitTotal -= discountAmount;
             }
 
+            // Round up the final total to nearest whole rupee
+            const originalFinal = finalTotal;
+            finalTotal = Math.ceil(finalTotal);
+            const roundingDiff = finalTotal - originalFinal;
+            profitTotal += roundingDiff; // adjust profit
+
             // Compute total paid from payments
             let totalPaid = 0;
             paymentsArray.forEach(p => { totalPaid += parseFloat(p.amount); });
-            const overpayment = totalPaid - finalTotal;
-            const changeToReturn = overpayment > 0 ? overpayment : 0;
-            // If overpaid, we still record payments as given, but change will be shown on bill
-            // We store totalPaid (maybe not in sales table), but we can store finalTotal as total_amount
+            const changeToReturn = totalPaid - finalTotal > 0 ? totalPaid - finalTotal : 0;
 
             db.run(
               `INSERT INTO sales (customer_id, total_amount, profit, bill_number, discount_type, discount_value, discount_amount, sale_date, seller_id)
@@ -168,7 +169,6 @@ router.post('/checkout', (req, res) => {
                      if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating sale'); }
                      const saleId = this.lastID;
 
-                     // Insert payments into sale_payments table
                      let paymentsInserted = 0;
                      paymentsArray.forEach(payment => {
                        db.run(
@@ -177,7 +177,6 @@ router.post('/checkout', (req, res) => {
                               err => {
                                 if (err) { db.run('ROLLBACK'); return res.status(500).send('Error inserting payment'); }
                                 if (++paymentsInserted === paymentsArray.length) {
-                                  // Insert sale items and update stock
                                   let itemsInserted = 0;
                                   items.forEach(item => {
                                     db.run(
@@ -209,7 +208,6 @@ router.post('/checkout', (req, res) => {
                                  if (err) return res.status(500).send('Error finalizing sale');
                                  req.session.cart = [];
                                  if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
-                                 // Optionally store change amount in session to display on bill page
                                  req.session.lastSaleChange = changeToReturn;
                                  res.redirect(`/bill/${saleId}`);
                                });
@@ -241,7 +239,7 @@ router.post('/checkout', (req, res) => {
   });
 });
 
-// Return sale (also handles payments for return bill)
+// Return sale (no rounding needed for negative amounts)
 router.post('/return/:saleId', (req, res) => {
   const saleId = req.params.saleId;
   const returnDate = req.body.return_date || null;
@@ -274,14 +272,10 @@ router.post('/return/:saleId', (req, res) => {
                  if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating return sale'); }
                  const returnSaleId = this.lastID;
 
-                 // For return, we also create a negative payment record (optional) but not required.
-                 // To keep payment method consistent, create a single payment row with method 'Return'
                  db.run(
                    `INSERT INTO sale_payments (sale_id, payment_method, amount) VALUES (?, ?, ?)`,
                         [returnSaleId, 'Return', -originalSale.total_amount],
-                        err => {
-                          if (err) console.error('Error inserting return payment:', err);
-                        }
+                        err => { if (err) console.error('Error inserting return payment:', err); }
                  );
 
                  let itemsInserted = 0;
@@ -351,7 +345,6 @@ router.get('/sales', (req, res) => {
 
     const saleIds = sales.map(s => s.id);
     const placeholders = saleIds.map(() => '?').join(',');
-    // Fetch sale items
     db.all(`
     SELECT si.*, p.name as product_name, p.product_code
     FROM sale_items si
@@ -365,7 +358,6 @@ router.get('/sales', (req, res) => {
         itemsBySale[item.sale_id].push(item);
       });
 
-      // Fetch payments for each sale
       db.all(`SELECT sale_id, payment_method, amount FROM sale_payments WHERE sale_id IN (${placeholders})`, saleIds, (err, payments) => {
         if (err) return res.status(500).send('Database error');
         const paymentsBySale = {};
@@ -384,7 +376,7 @@ router.get('/sales', (req, res) => {
   });
 });
 
-// Sold products list (no changes needed for payments because it aggregates per item)
+// Sold products list (no rounding changes needed)
 router.get('/sold-products', async (req, res) => {
   const { start_date, end_date, search, seller_id, page = 1, limit = 50 } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -509,7 +501,6 @@ router.get('/edit/:id', isAdmin, (req, res) => {
     `, [saleId], (err, items) => {
       if (err) return res.status(500).send('Database error');
 
-      // Fetch payments
       db.all('SELECT id, payment_method, amount FROM sale_payments WHERE sale_id = ?', [saleId], (err, payments) => {
         if (err) return res.status(500).send('Database error');
 
@@ -522,10 +513,10 @@ router.get('/edit/:id', isAdmin, (req, res) => {
   });
 });
 
-// POST /sale/update/:id - process edit (admin only) - also update payments
+// POST /sale/update/:id - process edit (admin only) with rounding
 router.post('/update/:id', isAdmin, (req, res) => {
   const saleId = req.params.id;
-  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payment_method, items, payments } = req.body;
+  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, items, payments } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).send('At least one item is required');
@@ -539,7 +530,6 @@ router.post('/update/:id', isAdmin, (req, res) => {
     return res.status(400).send('Invalid sale date');
   }
 
-  // Parse items
   const newItems = items.map(item => ({
     product_id: parseInt(item.product_id),
                                       size: item.size,
@@ -547,7 +537,6 @@ router.post('/update/:id', isAdmin, (req, res) => {
                                       price_at_sale: parseFloat(item.price_at_sale)
   }));
 
-  // Parse payments
   let paymentsArray = [];
   if (payments && Array.isArray(payments)) {
     paymentsArray = payments.filter(p => p.method && p.amount && parseFloat(p.amount) > 0);
@@ -565,7 +554,6 @@ router.post('/update/:id', isAdmin, (req, res) => {
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
 
-        // Restore stock from old items
         let stockRestored = 0;
         oldItems.forEach(item => {
           db.get('SELECT id FROM product_variants WHERE product_id = ? AND size = ?', [item.product_id, item.size], (err, variant) => {
@@ -631,6 +619,12 @@ router.post('/update/:id', isAdmin, (req, res) => {
               profitTotal -= discountAmount;
             }
 
+            // Round up the final total
+            const originalFinal = finalTotal;
+            finalTotal = Math.ceil(finalTotal);
+            const roundingDiff = finalTotal - originalFinal;
+            profitTotal += roundingDiff;
+
             let customerId = originalSale.customer_id;
             const updateSaleRecord = (custId) => {
               db.run(
@@ -640,13 +634,11 @@ router.post('/update/:id', isAdmin, (req, res) => {
                 err => {
                   if (err) { db.run('ROLLBACK'); return res.status(500).send('Error updating sale'); }
 
-                  // Delete old sale_items and old payments
                   db.run('DELETE FROM sale_items WHERE sale_id = ?', [saleId], err => {
                     if (err) { db.run('ROLLBACK'); return res.status(500).send('Error removing old items'); }
                     db.run('DELETE FROM sale_payments WHERE sale_id = ?', [saleId], err => {
                       if (err) { db.run('ROLLBACK'); return res.status(500).send('Error removing old payments'); }
 
-                      // Insert new payments
                       let paymentsInserted = 0;
                       if (paymentsArray.length === 0) {
                         insertItemsAndStock();
@@ -744,7 +736,6 @@ router.post('/delete/:id', isAdmin, (req, res) => {
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
 
-        // Restock items
         let itemsProcessed = 0;
         if (items.length === 0) {
           deleteSaleRecord();
