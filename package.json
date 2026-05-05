@@ -1,7 +1,7 @@
 {
   "name": "inventoryproject",
   "version": "1.0.0",
-  "description": "Clothing store inventory management with QR scanning",
+  "description": "Clothing store inventory management with QR scanning and WhatsApp bill delivery",
   "main": "project/server.js",
   "scripts": {
     "start": "node project/server.js",
@@ -10,19 +10,26 @@
   "keywords": [
     "inventory",
     "qr",
-    "clothing"
+    "clothing",
+    "whatsapp",
+    "pdf"
   ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "csv-parser": "^3.2.0",
+    "dotenv": "^16.4.5",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "form-data": "^4.0.0",
+    "puppeteer": "^22.0.0",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.3",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "tmp": "^0.2.0"
   }
 }

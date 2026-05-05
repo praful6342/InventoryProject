@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { isAdmin } = require('../middleware/auth');
+const pdfService = require('../services/pdf.service');
+const whatsappService = require('../services/whatsapp.service');
 
 function generateBillNumber() {
   const date = new Date();
@@ -85,9 +87,9 @@ router.get('/checkout', (req, res) => {
   res.render('checkout', { cart: req.session.cart, total });
 });
 
-// Process sale with split payments and rounding
+// Process sale with split payments, rounding, and WhatsApp bill delivery
 router.post('/checkout', (req, res) => {
-  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payments } = req.body;
+  const { customerName, customerPhone, customerEmail, discount_type, discount_value, sale_date, payments, sendWhatsApp } = req.body;
   const cart = req.session.cart;
   if (!cart || cart.length === 0) return res.redirect('/sale/cart');
 
@@ -114,6 +116,10 @@ router.post('/checkout', (req, res) => {
     db.run('BEGIN TRANSACTION');
 
     let customerId = null;
+    let finalSaleId = null;
+    let finalTotalAmount = 0;
+    let finalBillNumber = '';
+
     const finalize = () => {
       const billNumber = generateBillNumber();
       let profitTotal = 0;
@@ -150,13 +156,14 @@ router.post('/checkout', (req, res) => {
               profitTotal -= discountAmount;
             }
 
-            // Round up the final total to nearest whole rupee
+            // Round up final total
             const originalFinal = finalTotal;
             finalTotal = Math.ceil(finalTotal);
             const roundingDiff = finalTotal - originalFinal;
-            profitTotal += roundingDiff; // adjust profit
+            profitTotal += roundingDiff;
+            finalTotalAmount = finalTotal;
 
-            // Compute total paid from payments
+            // Compute total paid (for change and WhatsApp)
             let totalPaid = 0;
             paymentsArray.forEach(p => { totalPaid += parseFloat(p.amount); });
             const changeToReturn = totalPaid - finalTotal > 0 ? totalPaid - finalTotal : 0;
@@ -168,6 +175,8 @@ router.post('/checkout', (req, res) => {
                    function(err) {
                      if (err) { db.run('ROLLBACK'); return res.status(500).send('Error creating sale'); }
                      const saleId = this.lastID;
+                     finalSaleId = saleId;
+                     finalBillNumber = billNumber;
 
                      let paymentsInserted = 0;
                      paymentsArray.forEach(payment => {
@@ -209,6 +218,53 @@ router.post('/checkout', (req, res) => {
                                  req.session.cart = [];
                                  if (req.app.locals.socketApi) req.app.locals.socketApi.emitProductUpdate();
                                  req.session.lastSaleChange = changeToReturn;
+
+                                 // --- WhatsApp delivery (non-blocking) ---
+                                 const shouldSendWhatsApp = sendWhatsApp === 'yes' && customerPhone && customerPhone.trim();
+                                 if (shouldSendWhatsApp) {
+                                   // Fire and forget – do not block redirection
+                                   (async () => {
+                                     try {
+                                       // Fetch complete sale data with payments
+                                       const saleRecord = await new Promise((resolve, reject) => {
+                                         db.get('SELECT * FROM sales WHERE id = ?', [saleId], (err, row) => {
+                                           if (err) reject(err);
+                                           else resolve(row);
+                                         });
+                                       });
+                                       const saleItems = await new Promise((resolve, reject) => {
+                                         db.all('SELECT * FROM sale_items WHERE sale_id = ?', [saleId], (err, rows) => {
+                                           if (err) reject(err);
+                                           else resolve(rows);
+                                         });
+                                       });
+                                       const salePayments = await new Promise((resolve, reject) => {
+                                         db.all('SELECT payment_method, amount FROM sale_payments WHERE sale_id = ?', [saleId], (err, rows) => {
+                                           if (err) reject(err);
+                                           else resolve(rows);
+                                         });
+                                       });
+
+                                       saleRecord.payments = salePayments;
+                                       saleRecord.totalPaid = totalPaid;
+
+                                       // Generate PDF
+                                       const pdfBuffer = await pdfService.generateBillPDF(saleRecord, saleItems, req.session.user);
+                                       // Send via WhatsApp
+                                       await whatsappService.sendDocument(
+                                         customerPhone,
+                                         pdfBuffer,
+                                         `Bill_${finalBillNumber}.pdf`,
+                                         `Dear ${customerName || 'Customer'}, thank you for shopping with us! Your bill is attached.`
+                                       );
+                                       console.log(`✅ WhatsApp bill sent to ${customerPhone} for bill ${finalBillNumber}`);
+                                     } catch (waErr) {
+                                       console.error('❌ WhatsApp send failed (non‑blocking):', waErr.message);
+                                     }
+                                   })();
+                                 }
+                                 // ---------------------------------
+
                                  res.redirect(`/bill/${saleId}`);
                                });
                              }
@@ -239,7 +295,7 @@ router.post('/checkout', (req, res) => {
   });
 });
 
-// Return sale (no rounding needed for negative amounts)
+// Return sale (no WhatsApp needed)
 router.post('/return/:saleId', (req, res) => {
   const saleId = req.params.saleId;
   const returnDate = req.body.return_date || null;
@@ -376,7 +432,7 @@ router.get('/sales', (req, res) => {
   });
 });
 
-// Sold products list (no rounding changes needed)
+// Sold products list
 router.get('/sold-products', async (req, res) => {
   const { start_date, end_date, search, seller_id, page = 1, limit = 50 } = req.query;
   const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -619,7 +675,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
               profitTotal -= discountAmount;
             }
 
-            // Round up the final total
+            // Round up final total
             const originalFinal = finalTotal;
             finalTotal = Math.ceil(finalTotal);
             const roundingDiff = finalTotal - originalFinal;
@@ -722,7 +778,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
   });
 });
 
-// Delete sale (admin only) - also delete associated payments
+// Delete sale (admin only)
 router.post('/delete/:id', isAdmin, (req, res) => {
   const saleId = req.params.id;
 

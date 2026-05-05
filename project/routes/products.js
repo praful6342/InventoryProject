@@ -56,7 +56,7 @@ router.post('/add', isAdmin, (req, res) => {
   // Recalculate margin_rs and selling_price on server (rounded up)
   const cost = parseFloat(cost_price);
   const marginPercent = parseFloat(margin_percent);
-  const marginRs = cost * (marginPercent / 100);
+  const marginRs = parseFloat((cost * (marginPercent / 100)).toFixed(2));
   const rawSelling = cost + marginRs;
   const selling_price = Math.ceil(rawSelling);
 
@@ -204,7 +204,7 @@ router.post('/update/:id', isAdmin, (req, res) => {
   // Recalculate margin_rs and selling_price on server (rounded up)
   const cost = parseFloat(cost_price);
   const marginPercent = parseFloat(margin_percent);
-  const marginRs = cost * (marginPercent / 100);
+  const marginRs = parseFloat((cost * (marginPercent / 100)).toFixed(2));
   const rawSelling = cost + marginRs;
   const selling_price = Math.ceil(rawSelling);
 

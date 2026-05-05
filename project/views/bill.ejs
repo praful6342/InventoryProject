@@ -9,64 +9,21 @@
   <link rel="stylesheet" href="/custom.css">
   <script src="/js/app.js" defer></script>
   <style>
-    @media print {
-      .no-print { display: none; }
-    }
-    .bill-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-    }
-    .bill-header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    .bill-header h2 {
-      margin-bottom: 5px;
-    }
-    .return-badge {
-      color: #dc3545;
-      font-weight: bold;
-      font-size: 1.2rem;
-    }
-    .bill-details {
-      margin-bottom: 20px;
-    }
-    .bill-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .bill-table th, .bill-table td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    .bill-table th {
-      background-color: #f2f2f2;
-    }
-    .total-row {
-      font-weight: bold;
-    }
-    .discount-row {
-      color: #dc3545;
-    }
-    .negative-amount {
-      color: #dc3545;
-    }
-    .payment-table {
-      width: 100%;
-      margin-top: 10px;
-      margin-bottom: 10px;
-    }
-    .payment-table td {
-      padding: 4px 0;
-    }
-    .change-text {
-      color: #059669;
-      font-weight: bold;
-    }
+    @media print { .no-print { display: none; } }
+    .bill-container { max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+    .bill-header { text-align: center; margin-bottom: 30px; }
+    .bill-header h2 { margin-bottom: 5px; }
+    .return-badge { color: #dc3545; font-weight: bold; font-size: 1.2rem; }
+    .bill-details { margin-bottom: 20px; }
+    .bill-table { width: 100%; border-collapse: collapse; }
+    .bill-table th, .bill-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    .bill-table th { background-color: #f2f2f2; }
+    .total-row { font-weight: bold; }
+    .discount-row { color: #dc3545; }
+    .negative-amount { color: #dc3545; }
+    .payment-table { width: 100%; margin-top: 10px; margin-bottom: 10px; }
+    .payment-table td { padding: 4px 0; }
+    .change-text { color: #059669; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -109,13 +66,7 @@
 
       <table class="bill-table">
         <thead>
-          <tr>
-            <th>Item</th>
-            <th>Size</th>
-            <th>Quantity</th>
-            <th>Unit Price (₹)</th>
-            <th>Total (₹)</th>
-          </tr>
+          <tr><th>Item</th><th>Size</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
         </thead>
         <tbody>
           <% items.forEach(item => { %>
@@ -126,8 +77,8 @@
             <td>₹<%= item.price_at_sale.toFixed(2) %></td>
             <td class="<%= (item.price_at_sale * item.quantity) < 0 ? 'negative-amount' : '' %>">
               ₹<%= (item.price_at_sale * item.quantity).toFixed(2) %>
-             </td>
-           </tr>
+            </td>
+          </tr>
           <% }) %>
 
           <% if (sale.discount_amount && sale.discount_amount > 0) { %>
@@ -139,35 +90,33 @@
 
           <!-- Payment Methods Breakdown (split payments) -->
           <% if (payments && payments.length > 0 && sale.total_amount >= 0) { %>
-            <tr>
-              <td colspan="5" style="padding: 0;">
-                <table class="payment-table" style="width: 100%; margin: 5px 0;">
-                  <% payments.forEach(payment => { %>
-                    <tr>
-                      <td style="text-align: right; padding-right: 10px;"><strong><%= payment.payment_method %>:</strong></td>
-                      <td style="text-align: left;">₹<%= payment.amount.toFixed(2) %></td>
-                    </tr>
-                  <% }) %>
-                  <tr class="total-row">
-                    <td style="text-align: right;"><strong>Total Paid:</strong></td>
-                    <td>₹<%= totalPaid ? parseFloat(totalPaid).toFixed(2) : '0.00' %></td>
-                  </tr>
-                  <% if (showChange && changeAmount > 0) { %>
-                    <tr class="change-text">
-                      <td style="text-align: right;"><strong>Change Returned:</strong></td>
-                      <td>₹<%= changeAmount %></td>
-                    </tr>
-                  <% } %>
-                </table>
-              </td>
-            </tr>
+          <tr>
+            <td colspan="5" style="padding: 0;">
+              <table class="payment-table" style="width: 100%; margin: 5px 0;">
+                <% payments.forEach(payment => { %>
+                <tr>
+                  <td style="text-align: right; padding-right: 10px;"><strong><%= payment.payment_method %>:</strong></td>
+                  <td style="text-align: left;">₹<%= payment.amount.toFixed(2) %></td>
+                </tr>
+                <% }) %>
+                <tr class="total-row">
+                  <td style="text-align: right;"><strong>Total Paid:</strong></td>
+                  <td>₹<%= totalPaid %></td>
+                </tr>
+                <% if (showChange && changeAmount > 0) { %>
+                <tr class="change-text">
+                  <td style="text-align: right;"><strong>Change Returned:</strong></td>
+                  <td>₹<%= changeAmount %></td>
+                </tr>
+                <% } %>
+              </table>
+            </td>
+          </tr>
           <% } %>
 
           <tr class="total-row">
             <td colspan="4" style="text-align: right;">Total Amount:</td>
-            <td class="<%= sale.total_amount < 0 ? 'negative-amount' : '' %>">
-              ₹<%= sale.total_amount.toFixed(2) %>
-            </td>
+            <td class="<%= sale.total_amount < 0 ? 'negative-amount' : '' %>">₹<%= sale.total_amount.toFixed(2) %></td>
           </tr>
         </tbody>
       </table>
@@ -178,8 +127,22 @@
         <button class="btn btn-primary" onclick="window.print()">Print Bill</button>
         <a href="/" class="btn btn-secondary">Back to Home</a>
         <a href="/scan" class="btn btn-success">New Scan</a>
+
+        <!-- WhatsApp Resend Button - enabled if phone exists, otherwise disabled -->
+        <% if (user && (user.role === 'admin' || user.role === 'seller')) { %>
+          <% if (sale.customer_phone) { %>
+            <button class="btn btn-info" id="resendWhatsAppBtn" data-sale-id="<%= sale.id %>">
+              <i class="fab fa-whatsapp"></i> Resend WhatsApp
+            </button>
+          <% } else { %>
+            <button class="btn btn-secondary" disabled title="No phone number on file">
+              <i class="fab fa-whatsapp"></i> Resend WhatsApp (No number)
+            </button>
+          <% } %>
+        <% } %>
+
         <% if (user && user.role === 'admin' && sale.total_amount >= 0 && sale.returned == 0) { %>
-          <a href="/sale/edit/<%= sale.id %>" class="btn btn-info">Edit Bill</a>
+          <a href="/sale/edit/<%= sale.id %>" class="btn btn-warning">Edit Bill</a>
           <button class="btn btn-danger" id="deleteBillBtn" data-sale-id="<%= sale.id %>" data-bill-number="<%= sale.bill_number %>">Delete Bill</button>
         <% } %>
       </div>
@@ -230,6 +193,36 @@
       });
     }
     <% } %>
+
+    // WhatsApp Resend functionality (only if button exists and is not disabled)
+    const resendBtn = document.getElementById('resendWhatsAppBtn');
+    if (resendBtn && !resendBtn.disabled) {
+      resendBtn.addEventListener('click', async () => {
+        const saleId = resendBtn.dataset.saleId;
+        const originalText = resendBtn.innerHTML;
+        resendBtn.disabled = true;
+        resendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Sending...';
+
+        try {
+          const response = await fetch(`/bill/resend-whatsapp/${saleId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const data = await response.json();
+          if (response.ok && data.success) {
+            showToast('Bill resent successfully via WhatsApp!', 'success');
+          } else {
+            showToast(data.error || 'Failed to send WhatsApp message', 'danger');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Network error. Could not resend bill.', 'danger');
+        } finally {
+          resendBtn.disabled = false;
+          resendBtn.innerHTML = originalText;
+        }
+      });
+    }
   </script>
 </body>
 </html>

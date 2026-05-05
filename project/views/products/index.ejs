@@ -42,7 +42,6 @@
       color: #334155;
       font-weight: 600;
     }
-    /* Make entire row clickable */
     .clickable-row {
       cursor: pointer;
       transition: background-color 0.2s;
@@ -88,7 +87,6 @@
         <div class="col-md-3">
           <select id="category-filter" class="form-select">
             <option value="">All Categories</option>
-            <!-- options populated dynamically from products -->
           </select>
         </div>
         <div class="col-md-3">
@@ -348,7 +346,7 @@
       const marginPercent = parseFloat(document.getElementById('modal-margin_percent').value) || 0;
       const marginAmount = cost * (marginPercent / 100);
       const rawSellingPrice = cost + marginAmount;
-      const sellingPrice = Math.ceil(rawSellingPrice);   // Round up to nearest integer
+      const sellingPrice = Math.ceil(rawSellingPrice);
       document.getElementById('modal-margin_rs').value = marginAmount.toFixed(2);
       document.getElementById('modal-selling_price').value = sellingPrice;
     }
@@ -356,14 +354,47 @@
     document.getElementById('modal-margin_percent').addEventListener('input', calculateModalPrices);
     calculateModalPrices();
 
-    // ========== ADD PRODUCT FORM SUBMIT ==========
+    // ========== ADD PRODUCT FORM SUBMIT (FIXED: ensure created_at is captured) ==========
     document.getElementById('add-product-form').addEventListener('submit', async function(e) {
       e.preventDefault();
+
+      // Explicitly get the value of the created_at field (date input)
+      const created_at = document.getElementById('modal-created_at').value;
+      if (!created_at) {
+        showToast('Added date is required. Please select a date.', 'warning');
+        return;
+      }
+
+      // Prepare data object
       const form = e.target;
       const formData = new FormData(form);
       const data = {};
 
-      // Validation
+      // Process all form fields
+      formData.forEach((value, key) => {
+        if (key.startsWith('sizes[')) {
+          const match = key.match(/sizes\[(\d+)\]\[(\w+)\]/);
+          if (match) {
+            const idx = match[1];
+            const field = match[2];
+            data.sizes = data.sizes || {};
+            data.sizes[idx] = data.sizes[idx] || {};
+            data.sizes[idx][field] = value;
+          }
+        } else {
+          data[key] = value;
+        }
+      });
+
+      // Override created_at with the explicitly fetched value (to be safe)
+      data.created_at = created_at;
+
+      // Convert sizes object to array if needed
+      if (data.sizes) {
+        data.sizes = Object.values(data.sizes);
+      }
+
+      // Validation for sizes/stock
       const hasSizes = document.getElementById('modal-hasSizes').checked;
       if (hasSizes) {
         const sizeRows = document.querySelectorAll('.modal-size-row');
@@ -387,30 +418,6 @@
         }
       }
 
-      // Check created_at is provided (HTML5 required handles UI, but double-check)
-      if (!data.created_at) {
-        showToast('Added date is required.', 'warning');
-        return;
-      }
-
-      formData.forEach((value, key) => {
-        if (key.startsWith('sizes[')) {
-          const match = key.match(/sizes\[(\d+)\]\[(\w+)\]/);
-          if (match) {
-            const idx = match[1];
-            const field = match[2];
-            data.sizes = data.sizes || {};
-            data.sizes[idx] = data.sizes[idx] || {};
-            data.sizes[idx][field] = value;
-          }
-        } else {
-          data[key] = value;
-        }
-      });
-      if (data.sizes) {
-        data.sizes = Object.values(data.sizes);
-      }
-
       try {
         const res = await fetch('/products/add', {
           method: 'POST',
@@ -420,11 +427,13 @@
         if (res.ok) {
           const result = await res.json();
           if (result.success) {
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addProductModal'));
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
             modal.hide();
             fetchProducts();
             form.reset();
-            // Reset sizes container
+            // Reset date field after reset (because reset() may clear it)
+            document.getElementById('modal-created_at').value = '';
+            // Reset sizes container to initial state
             document.getElementById('modal-sizes-container').innerHTML = `<div class="row mb-2 modal-size-row">
               <div class="col-md-5">
                 <select class="form-control" name="sizes[0][size]">
@@ -449,11 +458,9 @@
             </div>`;
             modalSizeIndex = 1;
             updateModalRemoveButtons();
-            // Reset created_at field (clear value)
-            document.getElementById('modal-created_at').value = '';
             showToast('Product added successfully!', 'success');
           } else {
-            showToast('Error saving product', 'danger');
+            showToast(result.error || 'Error saving product', 'danger');
           }
         } else {
           const err = await res.json();
@@ -572,10 +579,10 @@
                       ? product.variants.map(v => `${v.size}: ${v.stock}`).join('<br>')
                       : '<span class="text-muted">—</span>')
                   : (product.variants && product.variants[0] ? `Stock: ${product.variants[0].stock}` : '<span class="text-muted">0</span>')}
-                </td>
+                 </td>
                 <td>₹${product.cost_price}</td>
                 <td>${product.margin_percent}%</td>
-                <td>${product.margin_rs}</td>
+                <td>${product.margin_rs.toFixed(2)}</td>
                 <td>₹${product.selling_price}</td>
                 <td>${addedOn}</td>
                 <td>${ageDisplay}</td>
@@ -583,11 +590,11 @@
                 <a href="/products/${product.id}">
                   <img src="/api/qr/${product.qr_code}" alt="QR" style="width: 50px; height: 50px;">
                 </a>
-                </td>
+                 </td>
                 <td>
                 <a href="/products/${product.id}" class="btn btn-info btn-sm w-100">View</a>
-                </td>
-              </tr>
+                 </td>
+               </tr>
           `;
         });
       });
